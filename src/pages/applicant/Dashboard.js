@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { FaFileAlt, FaClipboardList, FaSearch, FaPrint, FaUpload } from "react-icons/fa";
-import Navbar from "./Navbar";
+import Navbar from "../../components/Navbar";
 
 const cards = [
   { icon: <FaFileAlt size={26} />,      title: "Apply New Visa",        path: "/apply-new-visa" },

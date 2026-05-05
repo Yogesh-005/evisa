@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { FaClipboardList, FaBuilding } from "react-icons/fa";
-import Navbar from "./Navbar";
+import Navbar from "../../components/Navbar";
 
 const sections = [
   { icon: <FaClipboardList size={26} />, title: "All Applications", desc: "View and filter all visa applications.", path: "/admin/applications" },

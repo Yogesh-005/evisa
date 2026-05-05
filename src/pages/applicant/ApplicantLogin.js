@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
-const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+import api from "../../services/api";
 
 /* Step 1: Enter passport ID → request OTP
    Step 2: Enter OTP → verify → redirect to dashboard */
@@ -22,7 +20,7 @@ function ApplicantLogin() {
     if (!passportId.trim()) return setError("Passport ID is required.");
     try {
       setLoading(true);
-      await axios.post(`${BASE}/api/auth/send-otp`, { identifier: passportId, purpose: "LOGIN" });
+      await api.post(`/api/auth/send-otp`, { passportId, purpose: "login" });
       setStep(2);
     } catch {
       setError("Failed to send OTP. Please check your Passport ID.");
@@ -35,7 +33,7 @@ function ApplicantLogin() {
   async function handleResend() {
     setError(""); setResent(false);
     try {
-      await axios.post(`${BASE}/api/auth/send-otp`, { identifier: passportId, purpose: "LOGIN" });
+      await api.post(`/api/auth/send-otp`, { passportId, purpose: "login" });
       setResent(true);
     } catch {
       setError("Could not resend OTP. Try again.");
@@ -49,9 +47,9 @@ function ApplicantLogin() {
     if (!otp.trim()) return setError("Please enter the OTP.");
     try {
       setLoading(true);
-      const res = await axios.post(`${BASE}/api/auth/verify-otp`, { identifier: passportId, purpose: "LOGIN", otp });
+      const res = await api.post(`/api/auth/verify-otp`, { passportId, purpose: "login", otp });
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
+      localStorage.setItem("role", res.data.user?.role || "applicant");
       navigate("/dashboard");
     } catch {
       setError("Invalid or expired OTP.");

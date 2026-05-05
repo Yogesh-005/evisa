@@ -1,171 +1,139 @@
-# EVIDMS - E-Visa & Immigration Document Management System
+# EVIDMS — E-Visa & Immigration Document Management System
 
-## Frontend Application
-
-A comprehensive web-based visa application management portal built with React.
-
-### Tech Stack
-
-- **React 18** - Frontend framework with functional components and hooks
-- **React Router DOM v6** - Client-side routing for role-based pages
-- **Axios** - HTTP client for API communication
-- **React Icons** - Icon library for UI elements
-- **CSS Variables** - Custom design system (bleach & white palette)
-
-### Project Structure
-
-```
-evidms-frontend/
-├── public/
-│   └── index.html
-├── src/
-│   ├── index.js                    # Application entry point
-│   ├── App.js                      # Route definitions for all roles
-│   ├── global.css                  # Design system & shared styles
-│   ├── Navbar.js                   # Shared navigation component
-│   │
-│   ├── Landing.js                  # Public landing page with role selector
-│   │
-│   ├── ApplicantLogin.js           # Two-step login (Passport + OTP)
-│   ├── ApplicantRegister.js        # Registration with passport scan
-│   ├── Dashboard.js                # Applicant home dashboard
-│   ├── ApplyNewVisa.js             # 3-step visa application form
-│   ├── CompleteApplication.js      # Draft management
-│   ├── TrackStatus.js              # Application tracking
-│   ├── Payment.js                  # Payment processing
-│   ├── PrintApplication.js         # PDF download
-│   ├── ReuploadDocument.js         # Document replacement
-│   │
-│   ├── EmbassyLogin.js             # Embassy officer login
-│   ├── EmbassyDashboard.js         # Officer's application list
-│   ├── ApplicationDetail.js        # Application review & approval
-│   │
-│   ├── AdminLogin.js               # Admin authentication
-│   ├── AdminDashboard.js           # Admin navigation hub
-│   ├── AllApplications.js          # System-wide application view
-│   └── EmbassyManagement.js        # Embassy CRUD operations
-│
-├── package.json
-└── README.md
-```
-
-### Features by Role
-
-#### Applicants
-- Register with passport scan upload
-- Two-step OTP authentication
-- Apply for new visas (3-step process)
-- Save and complete draft applications
-- Track application status
-- Make payments
-- Download application PDFs
-- Reupload documents if needed
-
-#### Embassy Officers
-- Login with Embassy ID and password
-- View applications for their country
-- Search and filter applications
-- Review full application details
-- Approve or reject with remarks
-
-#### Admins
-- System-wide application management
-- Filter by country and search by ID
-- Full embassy CRUD operations
-- Delete confirmation guards
-
-### Getting Started
-
-#### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn
-
-#### Installation
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Configure API endpoint (optional):
-Create a `.env` file in the root directory:
-```
-REACT_APP_API_URL=http://localhost:5000
-```
-
-3. Start the development server:
-```bash
-npm start
-```
-
-The application will open at [http://localhost:3000](http://localhost:3000)
-
-#### Available Scripts
-
-- `npm start` - Runs the app in development mode
-- `npm run build` - Builds the app for production
-- `npm test` - Runs the test suite
-- `npm run eject` - Ejects from Create React App (one-way operation)
-
-### API Integration
-
-The frontend expects a backend API running at `http://localhost:5000` by default. You can configure this using the `REACT_APP_API_URL` environment variable.
-
-All API calls use Axios with authentication headers where required.
-
-### Design System
-
-The application uses a custom CSS design system defined in `global.css`:
-
-- **Color Palette**: Bleach & white theme
-- **Shared Components**: Cards, forms, buttons, tables, badges
-- **Responsive Design**: Mobile-friendly layouts
-- **No External UI Library**: Pure CSS with variables
-
-### Routes
-
-#### Public Routes
-- `/` - Landing page
-
-#### Applicant Routes
-- `/applicant/login` - Login
-- `/applicant/register` - Registration
-- `/dashboard` - Home dashboard
-- `/apply-new-visa` - New application
-- `/complete-application` - Draft management
-- `/track-status` - Status tracking
-- `/payment` - Payment processing
-- `/print-application` - PDF download
-- `/reupload-document` - Document replacement
-
-#### Embassy Routes
-- `/embassy/login` - Officer login
-- `/embassy/dashboard` - Application list
-- `/embassy/application/:id` - Application details
-
-#### Admin Routes
-- `/admin/login` - Admin login
-- `/admin/dashboard` - Admin hub
-- `/admin/applications` - All applications
-- `/admin/embassies` - Embassy management
-
-### Development Notes
-
-- All components use React functional components with hooks
-- State management is handled with useState and useEffect
-- Navigation uses React Router's useNavigate hook
-- Form validation is implemented inline
-- File uploads support passport scans and visa documents
-- OTP verification with resend functionality
-- Confirmation dialogs for destructive actions
-
-### Browser Support
-
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+A full-stack MERN application: a React frontend (applicant / embassy / admin
+portals) and an Express + MongoDB backend with passport-OTP authentication via
+Brevo (Sendinblue) email.
 
 ---
 
-**Status**: ✅ Development server running on http://localhost:3000
+## Repository Layout
+
+```
+evisa/
+├── public/                       # CRA static assets
+├── src/                          # React frontend
+│   ├── index.js
+│   ├── App.js                    # Route definitions
+│   ├── styles/
+│   │   └── global.css            # Design system: CSS variables, shared classes
+│   ├── components/
+│   │   └── Navbar.js             # Shared top nav
+│   ├── config/
+│   │   └── index.js              # Reads REACT_APP_* env vars (single source)
+│   ├── services/
+│   │   └── api.js                # Shared axios instance (baseURL + auth header)
+│   └── pages/
+│       ├── Landing.js
+│       ├── applicant/
+│       │   ├── ApplicantLogin.js
+│       │   ├── ApplicantRegister.js
+│       │   ├── Dashboard.js
+│       │   ├── ApplyNewVisa.js
+│       │   ├── CompleteApplication.js
+│       │   ├── TrackStatus.js
+│       │   ├── Payment.js
+│       │   ├── ReuploadDocument.js
+│       │   └── PrintApplication.js
+│       ├── embassy/
+│       │   ├── EmbassyLogin.js
+│       │   ├── EmbassyDashboard.js
+│       │   └── ApplicationDetail.js
+│       └── admin/
+│           ├── AdminLogin.js
+│           ├── AdminDashboard.js
+│           ├── AllApplications.js
+│           └── EmbassyManagement.js
+│
+├── backend/                      # Express + MongoDB API
+│   ├── server.js                 # App entry (express + cors + mongoose)
+│   ├── seed.js                   # Optional DB seeder
+│   ├── config/
+│   │   └── env.js                # Reads .env — single source of truth
+│   ├── controllers/
+│   │   └── authController.js
+│   ├── routes/
+│   │   └── authRoutes.js
+│   ├── services/
+│   │   └── authService.js
+│   ├── schemas/
+│   │   ├── userSchema.js
+│   │   ├── otpSchema.js
+│   │   └── applicationSchema.js
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Otp.js
+│   │   └── Application.js
+│   ├── utils/
+│   │   ├── generateOtp.js
+│   │   └── sendEmail.js
+│   ├── .env.example
+│   └── package.json
+│
+├── .env.example                  # Frontend env template
+└── package.json                  # Frontend (CRA) package
+```
+
+---
+
+## Centralized configuration (API key, email, base URL)
+
+Secrets and per-environment values live in **two `.env` files** — one for each
+half of the stack. Change a value once and every consumer in that half picks
+it up.
+
+### Frontend — `./.env`
+```
+REACT_APP_API_URL=http://localhost:5000
+```
+All React code reads this through `src/config/index.js`, which is consumed by
+`src/services/api.js` (the shared axios instance). To point the app at a
+different API, edit this one variable.
+
+### Backend — `./backend/.env`
+```
+PORT=5000
+MONGODB_URI=mongodb://127.0.0.1:27017/evidms
+JWT_SECRET=replace-me
+JWT_EXPIRES_IN=1d
+BREVO_API_KEY=xkeysib-...
+EMAIL_FROM=no-reply@example.com
+EMAIL_FROM_NAME=E-Visa App
+CLIENT_ORIGIN=http://localhost:3000
+```
+All backend code reads these through `backend/config/env.js`. The Brevo API
+key and the sender email/name are consumed by `backend/utils/sendEmail.js`,
+the JWT secret by `backend/services/authService.js`, etc. Update the `.env`
+once and the whole backend follows.
+
+> Never commit real `.env` files. Only `.env.example` is tracked.
+
+---
+
+## Running locally
+
+```bash
+# 1. Backend
+cd backend
+cp .env.example .env       # then fill in real values
+npm install
+npm run dev                # http://localhost:5000
+
+# 2. Frontend (in a second terminal, from repo root)
+cp .env.example .env
+npm install
+npm start                  # http://localhost:3000
+```
+
+---
+
+## API endpoints (backend)
+
+| Method | Path                  | Body                                          |
+|--------|-----------------------|-----------------------------------------------|
+| GET    | `/health`             | —                                             |
+| POST   | `/api/auth/send-otp`  | `{ passportId, purpose, email?, mobileNumber? }` |
+| POST   | `/api/auth/verify-otp`| `{ passportId, otp, purpose }`                |
+
+`purpose` is `"login"` or `"register"`. On successful login `verify-otp`
+returns `{ token, user }`; the frontend stores `token` in `localStorage` and
+the shared axios instance attaches it automatically.
