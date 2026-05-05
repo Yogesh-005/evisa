@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import Navbar from "./Navbar";
+import Navbar from "../../components/Navbar";
 
 const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
 const FEE   = 5000; // fixed visa fee in INR

@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
-const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+import api from "../../services/api";
 
 /* Step 1: Fill details & upload passport copy → POST /api/auth/register
    Step 2: Verify OTP sent to email/mobile → POST /api/auth/verify-otp */
@@ -35,8 +33,7 @@ function ApplicantRegister() {
 
     try {
       setLoading(true);
-      await axios.post(`${BASE}/api/auth/register`, { passportId, email, mobileNumber });
-      await axios.post(`${BASE}/api/auth/send-otp`, { identifier: email, purpose: "REGISTER" });
+      await api.post(`/api/auth/send-otp`, { passportId, email, mobileNumber, purpose: "register" });
       setStep(2);
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed. Please try again.");
@@ -52,10 +49,10 @@ function ApplicantRegister() {
     if (!otp.trim()) return setError("Please enter the OTP.");
     try {
       setLoading(true);
-      const res = await axios.post(`${BASE}/api/auth/verify-otp`, { identifier: form.email, purpose: "REGISTER", otp });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.role);
-      navigate("/dashboard");
+      const res = await api.post(`/api/auth/verify-otp`, { passportId: form.passportId, purpose: "register", otp });
+      if (res.data.token) localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", "applicant");
+      navigate("/applicant/login");
     } catch {
       setError("Invalid or expired OTP.");
     } finally {
