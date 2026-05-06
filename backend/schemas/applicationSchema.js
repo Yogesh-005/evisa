@@ -1,68 +1,102 @@
 const mongoose = require("mongoose");
 
+const documentSubSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    fileUrl: { type: String, required: true },
+    mimeType: { type: String },
+    uploadedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const statusHistorySubSchema = new mongoose.Schema(
+  {
+    status: { type: String, required: true },
+    at: { type: Date, default: Date.now },
+    by: { type: String },
+    remarks: { type: String },
+  },
+  { _id: false }
+);
+
+const paymentSubSchema = new mongoose.Schema(
+  {
+    orderId: { type: String },
+    paymentId: { type: String },
+    amount: { type: Number },
+    status: {
+      type: String,
+      enum: ["PENDING", "SUCCESS", "FAILED"],
+      default: "PENDING",
+    },
+    paidAt: { type: Date },
+  },
+  { _id: false }
+);
+
 const applicationSchema = new mongoose.Schema(
   {
-    /* PERSONAL DETAILS */
+    /* Identity */
+    applicationId: { type: String, unique: true, index: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+
+    status: {
+      type: String,
+      enum: ["DRAFT", "SUBMITTED", "PENDING", "APPROVED", "REJECTED"],
+      default: "DRAFT",
+      index: true,
+    },
+
+    visaType: {
+      type: String,
+      enum: ["Tourist", "Business", "Student", "Transit", "Work"],
+    },
+    destinationCountry: { type: String },
+
+    /* Sections (mirror frontend applicationFormSchema.js) */
     personalDetails: {
-      fullName: { type: String, required: true },
-      gender: {
-        type: String,
-        enum: ["Male", "Female", "Other"],
-        required: true,
-      },
-      dateOfBirth: { type: Date, required: true },
-      countryOfBirth: { type: String, required: true },
-      nationalIdNo: { type: String, required: true },
+      fullName: { type: String },
+      gender: { type: String, enum: ["Male", "Female", "Other"] },
+      dateOfBirth: { type: Date },
+      countryOfBirth: { type: String },
+      nationalIdNo: { type: String },
       citizenship: { type: String },
       educationQualification: {
         type: String,
-        enum: [
-          "Below Matric",
-          "Graduate",
-          "Post Graduate",
-          "Professional",
-          "Other",
-        ],
+        enum: ["Below Matric", "Graduate", "Post Graduate", "Professional", "Other"],
       },
     },
 
-    /* PASSPORT DETAILS */
     passportDetails: {
-      passportType: {
-        type: String,
-        enum: ["Ordinary", "Diplomatic", "Official", "Service"],
-        required: true,
-      },
-      passportNumber: { type: String, required: true },
-      placeOfIssue: { type: String, required: true },
-      dateOfIssue: { type: String, required: true },
-      dateOfExpiry: { type: String, required: true },
+      passportType: { type: String, enum: ["Ordinary", "Diplomatic", "Official", "Service"] },
+      passportNumber: { type: String },
+      placeOfIssue: { type: String },
+      dateOfIssue: { type: String },
+      dateOfExpiry: { type: String },
     },
 
-    /* ADDRESS DETAILS */
     addressDetails: {
       presentAddress: {
-        addressLine: { type: String, required: true },
+        addressLine: { type: String },
         district: { type: String },
         state: { type: String },
-        country: { type: String, required: true },
+        country: { type: String },
         postalCode: { type: String },
       },
       permanentAddress: {
         sameAsPresent: { type: Boolean, default: false },
-        addressLine: { type: String, required: true },
+        addressLine: { type: String },
         district: { type: String },
         state: { type: String },
-        country: { type: String, required: true },
+        country: { type: String },
         postalCode: { type: String },
       },
     },
 
-    /* CONTACT DETAILS */
     contactDetails: {
       email: {
         type: String,
-        required: true,
         match: [
           /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
           "Please use a valid email",
@@ -70,7 +104,6 @@ const applicationSchema = new mongoose.Schema(
       },
       mobileNumber: {
         type: String,
-        required: true,
         match: [/^[0-9]{10}$/, "Enter valid 10-digit mobile number"],
       },
       alternateMobileNumber: {
@@ -78,6 +111,12 @@ const applicationSchema = new mongoose.Schema(
         match: [/^[0-9]{10}$/, "Enter valid 10-digit mobile number"],
       },
     },
+
+    /* Operational */
+    documents: { type: [documentSubSchema], default: [] },
+    statusHistory: { type: [statusHistorySubSchema], default: [] },
+    payment: { type: paymentSubSchema, default: () => ({}) },
+    submittedAt: { type: Date },
   },
   { timestamps: true }
 );

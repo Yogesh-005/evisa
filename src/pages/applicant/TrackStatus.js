@@ -1,17 +1,13 @@
 import React, { useState } from "react";
-import axios from "axios";
 import Navbar from "../../components/Navbar";
+import api from "../../services/api";
 
-const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
-
-/* GET /api/applications/status/:id → { status, history:[{status}] } */
+/* GET /api/applications/status/:id → { status, history:[{status, at}] } */
 function TrackStatus() {
   const [appId, setAppId]   = useState("");
   const [result, setResult] = useState(null);
   const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
-
-  const token = localStorage.getItem("token");
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -19,19 +15,23 @@ function TrackStatus() {
     if (!appId.trim()) return setError("Please enter an Application ID.");
     try {
       setLoading(true);
-      const res = await axios.get(`${BASE}/api/applications/status/${appId.trim()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get(`/api/applications/status/${appId.trim()}`);
       setResult(res.data);
     } catch (err) {
-      setError(err.response?.data?.error || "Application not found.");
+      setError(err.response?.data?.message || "Application not found.");
     } finally {
       setLoading(false);
     }
   }
 
   function badgeClass(s) {
-    const map = { Pending: "badge-pending", Approved: "badge-approved", Rejected: "badge-rejected" };
+    const map = {
+      DRAFT: "badge-draft",
+      SUBMITTED: "badge-pending",
+      PENDING: "badge-pending",
+      APPROVED: "badge-approved",
+      REJECTED: "badge-rejected",
+    };
     return `badge ${map[s] || "badge-draft"}`;
   }
 

@@ -2,6 +2,8 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import "./styles/global.css";
 
+import RequireAuth from "./components/RequireAuth";
+
 /* Landing */
 import Landing from "./pages/Landing";
 
@@ -34,16 +36,18 @@ function App() {
         {/* Public */}
         <Route path="/"                        element={<Landing />} />
 
-        {/* Applicant */}
+        {/* Applicant — public auth */}
         <Route path="/applicant/login"         element={<ApplicantLogin />} />
         <Route path="/applicant/register"      element={<ApplicantRegister />} />
-        <Route path="/dashboard"               element={<Dashboard />} />
-        <Route path="/apply-new-visa"          element={<ApplyNewVisa />} />
-        <Route path="/complete-application"    element={<CompleteApplication />} />
-        <Route path="/track-status"            element={<TrackStatus />} />
-        <Route path="/print-application"       element={<PrintApplication />} />
-        <Route path="/reupload-document"       element={<ReuploadDocument />} />
-        <Route path="/payment"                 element={<Payment />} />
+
+        {/* Applicant — protected */}
+        <Route path="/dashboard"               element={<RequireAuth role="applicant"><Dashboard /></RequireAuth>} />
+        <Route path="/apply-new-visa"          element={<RequireAuth role="applicant"><ApplyNewVisa /></RequireAuth>} />
+        <Route path="/complete-application"    element={<RequireAuth role="applicant"><CompleteApplication /></RequireAuth>} />
+        <Route path="/track-status"            element={<RequireAuth role="applicant"><TrackStatus /></RequireAuth>} />
+        <Route path="/print-application"       element={<RequireAuth role="applicant"><PrintApplication /></RequireAuth>} />
+        <Route path="/reupload-document"       element={<RequireAuth role="applicant"><ReuploadDocument /></RequireAuth>} />
+        <Route path="/payment"                 element={<RequireAuth role="applicant"><Payment /></RequireAuth>} />
 
         {/* Embassy Officer */}
         <Route path="/embassy/login"           element={<EmbassyLogin />} />

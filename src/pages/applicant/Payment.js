@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
 import Navbar from "../../components/Navbar";
+import api from "../../services/api";
 
-const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
-const FEE   = 5000; // fixed visa fee in INR
+const FEE = 5000; // fixed visa fee in INR
 
 /* POST /api/payments/create-order → { orderId }
    POST /api/payments/verify       → { status }  */
@@ -18,16 +17,12 @@ function Payment() {
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
 
-  const token = localStorage.getItem("token");
-  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
-
-  /* Create order on mount */
   useEffect(() => {
     if (!applicationId) return;
     async function createOrder() {
       try {
         setLoading(true);
-        const res = await axios.post(`${BASE}/api/payments/create-order`, { applicationId, amount: FEE }, authHeaders);
+        const res = await api.post("/api/payments/create-order", { applicationId, amount: FEE });
         setOrderId(res.data.orderId);
       } catch {
         setError("Failed to create payment order. Please try again.");
@@ -38,11 +33,10 @@ function Payment() {
     createOrder();
   }, [applicationId]);
 
-  /* Simulate verify (Razorpay or similar would call this via webhook/callback) */
   async function handleVerify(paymentId) {
     try {
       setLoading(true);
-      const res = await axios.post(`${BASE}/api/payments/verify`, { orderId, paymentId }, authHeaders);
+      const res = await api.post("/api/payments/verify", { orderId, paymentId, applicationId });
       setPayStatus(res.data.status === "Success" ? "success" : "failed");
     } catch {
       setPayStatus("failed");
