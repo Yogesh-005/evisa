@@ -1,8 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
 import Navbar from "../../components/Navbar";
-
-const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+import api from "../../services/api";
 
 /* GET /api/applications/:id/print → { fileUrl } */
 function PrintApplication() {
@@ -12,25 +10,20 @@ function PrintApplication() {
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
 
-  const token = localStorage.getItem("token");
-  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
-
   async function handleFetch(e) {
     e.preventDefault();
     setError(""); setFileUrl(""); setDetails(null);
     if (!appId.trim()) return setError("Please enter an Application ID.");
     try {
       setLoading(true);
-      /* Fetch application details first to confirm it is submitted */
-      const detailRes = await axios.get(`${BASE}/api/applications/${appId.trim()}`, authHeaders);
+      const detailRes = await api.get(`/api/applications/${appId.trim()}`);
       if (detailRes.data.status === "DRAFT") return setError("Only submitted applications can be printed.");
       setDetails(detailRes.data);
 
-      /* Fetch print PDF URL */
-      const printRes = await axios.get(`${BASE}/api/applications/${appId.trim()}/print`, authHeaders);
+      const printRes = await api.get(`/api/applications/${appId.trim()}/print`);
       setFileUrl(printRes.data.fileUrl);
     } catch (err) {
-      setError(err.response?.data?.error || "Application not found.");
+      setError(err.response?.data?.message || "Application not found.");
     } finally {
       setLoading(false);
     }

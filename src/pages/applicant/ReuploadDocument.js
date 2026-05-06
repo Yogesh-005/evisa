@@ -1,20 +1,15 @@
 import React, { useState } from "react";
-import axios from "axios";
 import Navbar from "../../components/Navbar";
+import api from "../../services/api";
 
-const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
-
-/* PUT /api/documents/reupload/:id  (multipart)
-   Deadline enforcement is handled backend-side; frontend shows error message */
+/* PUT /api/documents/reupload/:id  (multipart) */
 function ReuploadDocument() {
   const [appId, setAppId]     = useState("");
   const [file, setFile]       = useState(null);
   const [error, setError]     = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const [confirmed, setConfirmed] = useState(false); // confirmation before override
-
-  const token = localStorage.getItem("token");
+  const [confirmed, setConfirmed] = useState(false);
 
   async function handleReupload(e) {
     e.preventDefault();
@@ -31,13 +26,13 @@ function ReuploadDocument() {
 
     try {
       setLoading(true);
-      await axios.put(`${BASE}/api/documents/reupload/${appId.trim()}`, fd, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+      await api.put(`/api/documents/reupload/${appId.trim()}`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setSuccess("Document updated successfully.");
       setFile(null); setConfirmed(false);
     } catch (err) {
-      setError(err.response?.data?.error || "Reupload failed. The deadline may have passed.");
+      setError(err.response?.data?.message || "Reupload failed. The deadline may have passed.");
     } finally {
       setLoading(false);
     }

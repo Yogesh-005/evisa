@@ -33,7 +33,14 @@ evisa/
 │       │   ├── TrackStatus.js
 │       │   ├── Payment.js
 │       │   ├── ReuploadDocument.js
-│       │   └── PrintApplication.js
+│       │   ├── PrintApplication.js
+│       │   └── forms/
+│       │       ├── applicationFormSchema.js   # ⭐ single source of truth for fields
+│       │       ├── FieldRenderer.js
+│       │       ├── FormSection.js
+│       │       ├── ReviewSummary.js
+│       │       ├── useApplicationForm.js
+│       │       └── formUtils.js
 │       ├── embassy/
 │       │   ├── EmbassyLogin.js
 │       │   ├── EmbassyDashboard.js
@@ -49,10 +56,19 @@ evisa/
 │   ├── seed.js                   # Optional DB seeder
 │   ├── config/
 │   │   └── env.js                # Reads .env — single source of truth
+│   ├── middleware/
+│   │   ├── auth.js               # JWT verification + role guard
+│   │   └── upload.js             # multer config for document uploads
 │   ├── controllers/
-│   │   └── authController.js
+│   │   ├── authController.js
+│   │   ├── applicationController.js
+│   │   ├── documentController.js
+│   │   └── paymentController.js
 │   ├── routes/
-│   │   └── authRoutes.js
+│   │   ├── authRoutes.js
+│   │   ├── applicationRoutes.js
+│   │   ├── documentRoutes.js
+│   │   └── paymentRoutes.js
 │   ├── services/
 │   │   └── authService.js
 │   ├── schemas/
@@ -65,7 +81,9 @@ evisa/
 │   │   └── Application.js
 │   ├── utils/
 │   │   ├── generateOtp.js
+│   │   ├── generateId.js
 │   │   └── sendEmail.js
+│   ├── uploads/                  # multer storage (gitignored)
 │   ├── .env.example
 │   └── package.json
 │
@@ -128,12 +146,46 @@ npm start                  # http://localhost:3000
 
 ## API endpoints (backend)
 
-| Method | Path                  | Body                                          |
-|--------|-----------------------|-----------------------------------------------|
-| GET    | `/health`             | —                                             |
-| POST   | `/api/auth/send-otp`  | `{ passportId, purpose, email?, mobileNumber? }` |
-| POST   | `/api/auth/verify-otp`| `{ passportId, otp, purpose }`                |
+All `/api/applications`, `/api/documents`, and `/api/payments` routes require
+`Authorization: Bearer <jwt>` and the `applicant` role.
 
-`purpose` is `"login"` or `"register"`. On successful login `verify-otp`
-returns `{ token, user }`; the frontend stores `token` in `localStorage` and
-the shared axios instance attaches it automatically.
+### Auth (public)
+| Method | Path                  | Body                                                  |
+|--------|-----------------------|-------------------------------------------------------|
+| POST   | `/api/auth/send-otp`  | `{ passportId, purpose, email?, mobileNumber? }`      |
+| POST   | `/api/auth/verify-otp`| `{ passportId, otp, purpose }`                        |
+
+### Applications (applicant)
+| Method | Path                                  | Notes                            |
+|--------|---------------------------------------|----------------------------------|
+| POST   | `/api/applications`                   | Create DRAFT, returns `applicationId` |
+| GET    | `/api/applications/user`              | List the user's applications      |
+| GET    | `/api/applications/:id`               | Fetch one (must own)             |
+| GET    | `/api/applications/status/:id`        | `{ status, history }`            |
+| GET    | `/api/applications/:id/print`         | `{ fileUrl }` (stub)             |
+| PUT    | `/api/applications/draft/:id`         | Save DRAFT                       |
+| PUT    | `/api/applications/submit/:id`        | DRAFT → SUBMITTED                |
+
+### Documents (applicant)
+| Method | Path                                  | Notes                            |
+|--------|---------------------------------------|----------------------------------|
+| POST   | `/api/documents/upload`               | multipart `file`, `applicationId` |
+| PUT    | `/api/documents/reupload/:id`         | multipart `file`                 |
+
+### Payments (applicant)
+| Method | Path                                  | Notes                            |
+|--------|---------------------------------------|----------------------------------|
+| POST   | `/api/payments/create-order`          | `{ applicationId, amount }`      |
+| POST   | `/api/payments/verify`                | `{ orderId, paymentId, applicationId }` |
+
+---
+
+## Adding fields to the applicant detail form
+
+Edit **only** `src/pages/applicant/forms/applicationFormSchema.js`. Append a
+field to the relevant section (or add a whole new section) and the input,
+validation message, and review summary all update — no other file changes
+needed on the frontend.
+
+If the new field needs to persist, add the corresponding path to
+`backend/schemas/applicationSchema.js` so Mongoose stores it.
