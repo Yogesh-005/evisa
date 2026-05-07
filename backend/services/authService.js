@@ -74,7 +74,13 @@ exports.verifyOtpService = async ({ passportId, otp, purpose }) => {
     });
     await Otp.deleteOne({ _id: otpRecord._id });
 
-    return { message: "Registration successful", user };
+    const token = jwt.sign(
+      { id: user._id, role: user.role.toLowerCase() },
+      config.jwt.secret,
+      { expiresIn: config.jwt.expiresIn }
+    );
+
+    return { message: "Registration successful", token, user };
   }
 
   if (purpose === "login") {

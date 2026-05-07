@@ -50,9 +50,11 @@ function ApplicantRegister() {
     try {
       setLoading(true);
       const res = await api.post(`/api/auth/verify-otp`, { passportId: form.passportId, purpose: "register", otp });
-      if (res.data.token) localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", "applicant");
-      navigate("/applicant/login");
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("role", res.data.user?.role?.toLowerCase() || "applicant");
+      }
+      navigate("/dashboard");
     } catch {
       setError("Invalid or expired OTP.");
     } finally {

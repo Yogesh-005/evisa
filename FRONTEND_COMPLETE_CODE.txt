@@ -1,0 +1,2953 @@
+﻿===========================================
+EVIDMS FRONTEND - COMPLETE SOURCE CODE
+===========================================
+Generated: 2026-05-06 09:01:22
+
+This file contains the complete source code of all frontend files.
+
+===========================================
+
+===========================================
+FILE: package.json
+===========================================
+{
+  "name": "evidms-frontend",
+  "version": "1.0.0",
+  "description": "E-Visa & Immigration Document Management System - Frontend",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0",
+    "axios": "^1.6.2",
+    "react-icons": "^4.12.0",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
+
+
+
+===========================================
+FILE: public/index.html
+===========================================
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="E-Visa & Immigration Document Management System"
+    />
+    <title>EVIDMS - E-Visa Management System</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
+
+
+
+===========================================
+FILE: src/index.js
+===========================================
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './styles/global.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+
+
+===========================================
+FILE: src/App.js
+===========================================
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import "./styles/global.css";
+
+import RequireAuth from "./components/RequireAuth";
+
+/* Landing */
+import Landing from "./pages/Landing";
+
+/* Applicant */
+import ApplicantLogin       from "./pages/applicant/ApplicantLogin";
+import ApplicantRegister    from "./pages/applicant/ApplicantRegister";
+import Dashboard            from "./pages/applicant/Dashboard";
+import ApplyNewVisa         from "./pages/applicant/ApplyNewVisa";
+import CompleteApplication  from "./pages/applicant/CompleteApplication";
+import TrackStatus          from "./pages/applicant/TrackStatus";
+import PrintApplication     from "./pages/applicant/PrintApplication";
+import ReuploadDocument     from "./pages/applicant/ReuploadDocument";
+import Payment              from "./pages/applicant/Payment";
+
+/* Embassy Officer */
+import EmbassyLogin         from "./pages/embassy/EmbassyLogin";
+import EmbassyDashboard     from "./pages/embassy/EmbassyDashboard";
+import ApplicationDetail    from "./pages/embassy/ApplicationDetail";
+
+/* Admin */
+import AdminLogin           from "./pages/admin/AdminLogin";
+import AdminDashboard       from "./pages/admin/AdminDashboard";
+import AllApplications      from "./pages/admin/AllApplications";
+import EmbassyManagement    from "./pages/admin/EmbassyManagement";
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        {/* Public */}
+        <Route path="/"                        element={<Landing />} />
+
+        {/* Applicant â€” public auth */}
+        <Route path="/applicant/login"         element={<ApplicantLogin />} />
+        <Route path="/applicant/register"      element={<ApplicantRegister />} />
+
+        {/* Applicant â€” protected */}
+        <Route path="/dashboard"               element={<RequireAuth role="applicant"><Dashboard /></RequireAuth>} />
+        <Route path="/apply-new-visa"          element={<RequireAuth role="applicant"><ApplyNewVisa /></RequireAuth>} />
+        <Route path="/complete-application"    element={<RequireAuth role="applicant"><CompleteApplication /></RequireAuth>} />
+        <Route path="/track-status"            element={<RequireAuth role="applicant"><TrackStatus /></RequireAuth>} />
+        <Route path="/print-application"       element={<RequireAuth role="applicant"><PrintApplication /></RequireAuth>} />
+        <Route path="/reupload-document"       element={<RequireAuth role="applicant"><ReuploadDocument /></RequireAuth>} />
+        <Route path="/payment"                 element={<RequireAuth role="applicant"><Payment /></RequireAuth>} />
+
+        {/* Embassy Officer */}
+        <Route path="/embassy/login"           element={<EmbassyLogin />} />
+        <Route path="/embassy/dashboard"       element={<EmbassyDashboard />} />
+        <Route path="/embassy/application/:id" element={<ApplicationDetail />} />
+
+        {/* Admin */}
+        <Route path="/admin/login"             element={<AdminLogin />} />
+        <Route path="/admin/dashboard"         element={<AdminDashboard />} />
+        <Route path="/admin/applications"      element={<AllApplications />} />
+        <Route path="/admin/embassies"         element={<EmbassyManagement />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
+
+
+
+===========================================
+FILE: src/config/index.js
+===========================================
+/**
+ * Single source of truth for frontend environment values.
+ * Change `.env` (REACT_APP_*) and every consumer in the app picks it up.
+ */
+export const API_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+export const APP_NAME = process.env.REACT_APP_NAME || "EVIDMS";
+
+
+
+===========================================
+FILE: src/services/api.js
+===========================================
+import axios from "axios";
+import { API_URL } from "../config";
+
+/**
+ * Shared axios instance. All API calls should use this so that the base URL
+ * and auth header live in one place.
+ */
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export default api;
+
+
+
+===========================================
+FILE: src/components/Navbar.js
+===========================================
+import React from "react";
+import { useNavigate } from "react-router-dom";
+
+/* Shared top navigation bar for all authenticated pages */
+function Navbar({ role, backPath }) {
+  const navigate = useNavigate();
+
+  const roleLabel = {
+    applicant: "Applicant Portal",
+    embassy:   "Embassy Officer Portal",
+    admin:     "Admin Portal",
+  }[role] || "EVIDMS";
+
+  function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    navigate("/");
+  }
+
+  return (
+    <header className="page-header">
+      <span
+        className="brand"
+        style={{ cursor: "pointer" }}
+        onClick={() => navigate(backPath || "/")}
+      >
+        EVIDMS â€” {roleLabel}
+      </span>
+      <button className="btn btn-outline" style={{ fontSize: 13 }} onClick={handleLogout}>
+        Logout
+      </button>
+    </header>
+  );
+}
+
+export default Navbar;
+
+
+
+===========================================
+FILE: src/components/RequireAuth.js
+===========================================
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+
+/**
+ * Route wrapper that redirects unauthenticated users to a login page.
+ * Usage: <Route path="/dashboard" element={<RequireAuth role="applicant"><Dashboard /></RequireAuth>} />
+ */
+function RequireAuth({ role = "applicant", children }) {
+  const location = useLocation();
+  const token = localStorage.getItem("token");
+  const userRole = localStorage.getItem("role");
+
+  if (!token) {
+    const loginPath = role === "applicant" ? "/applicant/login"
+                    : role === "embassy"   ? "/embassy/login"
+                    : "/admin/login";
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
+  }
+
+  // Optional role check â€” allow any role if `role` not specified strictly.
+  if (role && userRole && userRole !== role) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+export default RequireAuth;
+
+
+
+===========================================
+FILE: src/pages/Landing.js
+===========================================
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { FaUser, FaUserShield } from "react-icons/fa";
+
+/* FAQ data â€” Applicant only, per user stories */
+const faqData = [
+  {
+    category: "Applicant FAQs",
+    questions: [
+      { q: "How do I apply for a new visa?",          a: "Login â†’ Dashboard â†’ Apply New Visa â†’ Fill form â†’ Upload documents â†’ Submit." },
+      { q: "Can I continue a partial application?",   a: "Yes. Dashboard â†’ Complete Application â†’ edit and submit." },
+      { q: "How do I track my application?",          a: "Dashboard â†’ Track Status â†’ enter your Application ID." },
+      { q: "Can I print my application?",             a: "Yes. Use Print Application from the Applicant Dashboard." },
+      { q: "What if my documents are rejected?",      a: "Use Re-Upload Documents from the dashboard within the allowed time window." },
+    ],
+  },
+];
+
+function Landing() {
+  const navigate = useNavigate();
+  const [showFAQ, setShowFAQ] = useState(false);
+
+  return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "var(--font-body)", display: "flex", flexDirection: "column" }}>
+
+      {/* Header */}
+      <header className="page-header">
+        <span className="brand">EVIDMS</span>
+        <button className="btn btn-outline" onClick={() => navigate("/admin/login")} style={{ fontSize: 13 }}>
+          Admin Login
+        </button>
+      </header>
+
+      {/* Hero */}
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px" }}>
+        <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 12 }}>
+          E-Visa & Immigration Document Management
+        </p>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 42, textAlign: "center", color: "var(--text-primary)", lineHeight: 1.2, marginBottom: 14, maxWidth: 560 }}>
+          Manage your visa application end-to-end
+        </h1>
+        <p style={{ color: "var(--text-secondary)", fontSize: 15, textAlign: "center", marginBottom: 52, maxWidth: 420 }}>
+          Select your role below to login or register and access the appropriate portal.
+        </p>
+
+        {/* Role Cards */}
+        <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center" }}>
+          <RoleCard
+            icon={<FaUser size={28} />}
+            title="Applicant"
+            desc="Apply, track, and manage your visa application."
+            onClick={() => navigate("/applicant/login")}
+          />
+          <RoleCard
+            icon={<FaUserShield size={28} />}
+            title="Embassy Officer"
+            desc="Review and process visa applications for your country."
+            onClick={() => navigate("/embassy/login")}
+          />
+        </div>
+      </main>
+
+      {/* FAQ Floating Button */}
+      <button
+        onClick={() => setShowFAQ(true)}
+        style={{
+          position: "fixed", bottom: 28, right: 28,
+          background: "var(--accent)", color: "#fff",
+          border: "none", borderRadius: 30, padding: "12px 20px",
+          fontSize: 13, fontWeight: 600, cursor: "pointer",
+          fontFamily: "var(--font-body)", boxShadow: "var(--shadow-md)",
+          transition: "background 0.2s",
+        }}
+      >
+        Help / FAQ
+      </button>
+
+      {/* FAQ Sidebar */}
+      <div style={{
+        position: "fixed", top: 0, right: showFAQ ? 0 : -420,
+        width: 380, height: "100%", background: "var(--surface)",
+        borderLeft: "1px solid var(--border)", boxShadow: "var(--shadow-lg)",
+        padding: 28, overflowY: "auto", transition: "right 0.35s ease", zIndex: 1000,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 20 }}>Help / FAQ</span>
+          <button
+            onClick={() => setShowFAQ(false)}
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", fontSize: 14, fontWeight: 600 }}
+          >
+            âœ•
+          </button>
+        </div>
+        {faqData.map((section, si) => (
+          <div key={si}>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "var(--text-muted)", marginBottom: 14 }}>
+              {section.category}
+            </p>
+            {section.questions.map((item, qi) => (
+              <div key={qi} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "14px 16px", marginBottom: 10 }}>
+                <p style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>{item.q}</p>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>{item.a}</p>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Single role card */
+function RoleCard({ icon, title, desc, onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: "var(--radius-lg)", padding: "36px 32px",
+        width: 230, cursor: "pointer", textAlign: "center",
+        boxShadow: hovered ? "var(--shadow-md)" : "var(--shadow-sm)",
+        transform: hovered ? "translateY(-4px)" : "none",
+        transition: "all 0.25s ease",
+        borderColor: hovered ? "var(--border-strong)" : "var(--border)",
+      }}
+    >
+      <div style={{ marginBottom: 16, color: "var(--text-primary)" }}>{icon}</div>
+      <h3 style={{ fontFamily: "var(--font-display)", fontSize: 20, marginBottom: 8 }}>{title}</h3>
+      <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>{desc}</p>
+    </div>
+  );
+}
+
+export default Landing;
+
+
+
+===========================================
+FILE: src/pages/applicant/ApplicantLogin.js
+===========================================
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
+
+/* Step 1: Enter passport ID â†’ request OTP
+   Step 2: Enter OTP â†’ verify â†’ redirect to dashboard */
+function ApplicantLogin() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);               // 1 = passport entry, 2 = OTP
+  const [passportId, setPassportId] = useState("");
+  const [otp, setOtp] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [resent, setResent] = useState(false);
+
+  /* Send OTP â€” POST /api/auth/send-otp */
+  async function handleSendOtp(e) {
+    e.preventDefault();
+    setError("");
+    if (!passportId.trim()) return setError("Passport ID is required.");
+    try {
+      setLoading(true);
+      await api.post(`/api/auth/send-otp`, { passportId, purpose: "login" });
+      setStep(2);
+    } catch {
+      setError("Failed to send OTP. Please check your Passport ID.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* Resend OTP */
+  async function handleResend() {
+    setError(""); setResent(false);
+    try {
+      await api.post(`/api/auth/send-otp`, { passportId, purpose: "login" });
+      setResent(true);
+    } catch {
+      setError("Could not resend OTP. Try again.");
+    }
+  }
+
+  /* Verify OTP â€” POST /api/auth/verify-otp */
+  async function handleVerifyOtp(e) {
+    e.preventDefault();
+    setError("");
+    if (!otp.trim()) return setError("Please enter the OTP.");
+    try {
+      setLoading(true);
+      const res = await api.post(`/api/auth/verify-otp`, { passportId, purpose: "login", otp });
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.user?.role || "applicant");
+      navigate("/dashboard");
+    } catch {
+      setError("Invalid or expired OTP.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 28 }}>Applicant Login</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 6 }}>
+            {step === 1 ? "Enter your Passport ID to receive an OTP." : `OTP sent to your registered contact.`}
+          </p>
+        </div>
+
+        <div className="card">
+          {error && <div className="msg-error">{error}</div>}
+          {resent && <div className="msg-success">OTP resent successfully.</div>}
+
+          {step === 1 ? (
+            <form onSubmit={handleSendOtp}>
+              <div className="form-group">
+                <label>Passport ID</label>
+                <input
+                  type="text" placeholder="e.g. A12345678"
+                  value={passportId} onChange={e => setPassportId(e.target.value)}
+                />
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: "100%", marginTop: 8 }}>
+                {loading ? "Sending OTPâ€¦" : "Send OTP"}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp}>
+              <div className="form-group">
+                <label>One-Time Password</label>
+                <input
+                  type="text" placeholder="Enter 6-digit OTP" maxLength={6}
+                  value={otp} onChange={e => setOtp(e.target.value)}
+                />
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: "100%", marginTop: 8 }}>
+                {loading ? "Verifyingâ€¦" : "Verify & Login"}
+              </button>
+              <button type="button" className="btn btn-outline" style={{ width: "100%", marginTop: 10 }} onClick={handleResend}>
+                Resend OTP
+              </button>
+              <button type="button" onClick={() => { setStep(1); setError(""); }} style={{ background: "none", border: "none", fontSize: 13, color: "var(--text-muted)", cursor: "pointer", marginTop: 12, display: "block" }}>
+                â† Change Passport ID
+              </button>
+            </form>
+          )}
+
+          <div className="divider" />
+          <p style={{ fontSize: 13, textAlign: "center", color: "var(--text-secondary)" }}>
+            New applicant?{" "}
+            <span style={{ color: "var(--text-primary)", fontWeight: 600, cursor: "pointer" }} onClick={() => navigate("/applicant/register")}>
+              Register Now
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ApplicantLogin;
+
+
+
+===========================================
+FILE: src/pages/applicant/ApplicantRegister.js
+===========================================
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
+
+/* Step 1: Fill details & upload passport copy â†’ POST /api/auth/register
+   Step 2: Verify OTP sent to email/mobile â†’ POST /api/auth/verify-otp */
+function ApplicantRegister() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState({ passportId: "", email: "", mobileNumber: "" });
+  const [passportFile, setPassportFile] = useState(null);
+  const [otp, setOtp] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  function handleChange(e) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  /* Register â€” POST /api/auth/register then send OTP */
+  async function handleRegister(e) {
+    e.preventDefault();
+    setError("");
+    const { passportId, email, mobileNumber } = form;
+    if (!passportId || !email || !mobileNumber || !passportFile) {
+      return setError("All fields including passport scan are required.");
+    }
+    /* Basic format guards */
+    if (!/^[A-Z]{1}[0-9]{8}$/.test(passportId)) return setError("Invalid Passport ID format (e.g. A12345678).");
+    if (!/^\S+@\S+\.\S+$/.test(email))           return setError("Invalid email address.");
+    const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
+    if (!allowedTypes.includes(passportFile.type)) return setError("Passport scan must be JPG, PNG, or PDF.");
+
+    try {
+      setLoading(true);
+      await api.post(`/api/auth/send-otp`, { passportId, email, mobileNumber, purpose: "register" });
+      setStep(2);
+    } catch (err) {
+      setError(err.response?.data?.error || "Registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* Verify OTP â€” POST /api/auth/verify-otp */
+  async function handleVerify(e) {
+    e.preventDefault();
+    setError("");
+    if (!otp.trim()) return setError("Please enter the OTP.");
+    try {
+      setLoading(true);
+      const res = await api.post(`/api/auth/verify-otp`, { passportId: form.passportId, purpose: "register", otp });
+      if (res.data.token) localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", "applicant");
+      navigate("/applicant/login");
+    } catch {
+      setError("Invalid or expired OTP.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <div style={{ width: "100%", maxWidth: 440 }}>
+
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 28 }}>Create Account</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 6 }}>
+            {step === 1 ? "Register with your passport details." : "Enter the OTP sent to your email."}
+          </p>
+        </div>
+
+        <div className="card">
+          {error && <div className="msg-error">{error}</div>}
+
+          {step === 1 ? (
+            <form onSubmit={handleRegister}>
+              <div className="form-group">
+                <label>Passport ID</label>
+                <input name="passportId" placeholder="e.g. A12345678" value={form.passportId} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label>Email Address</label>
+                <input name="email" type="email" placeholder="you@example.com" value={form.email} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label>Mobile Number</label>
+                <input name="mobileNumber" type="tel" placeholder="10-digit mobile number" value={form.mobileNumber} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label>Scanned Passport Copy</label>
+                <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setPassportFile(e.target.files[0])} />
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Accepted: JPG, PNG, PDF</span>
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: "100%", marginTop: 8 }}>
+                {loading ? "Registeringâ€¦" : "Register & Send OTP"}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerify}>
+              <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 20 }}>
+                An OTP has been sent to <strong>{form.email}</strong>.
+              </p>
+              <div className="form-group">
+                <label>One-Time Password</label>
+                <input type="text" placeholder="Enter OTP" maxLength={6} value={otp} onChange={e => setOtp(e.target.value)} />
+              </div>
+              <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: "100%", marginTop: 8 }}>
+                {loading ? "Verifyingâ€¦" : "Verify & Continue"}
+              </button>
+            </form>
+          )}
+
+          <div className="divider" />
+          <p style={{ fontSize: 13, textAlign: "center", color: "var(--text-secondary)" }}>
+            Already registered?{" "}
+            <span style={{ color: "var(--text-primary)", fontWeight: 600, cursor: "pointer" }} onClick={() => navigate("/applicant/login")}>
+              Login
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ApplicantRegister;
+
+
+
+===========================================
+FILE: src/pages/applicant/Dashboard.js
+===========================================
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { FaFileAlt, FaClipboardList, FaSearch, FaPrint, FaUpload } from "react-icons/fa";
+import Navbar from "../../components/Navbar";
+
+const cards = [
+  { icon: <FaFileAlt size={26} />,      title: "Apply New Visa",        path: "/apply-new-visa" },
+  { icon: <FaClipboardList size={26} />, title: "Complete Application",  path: "/complete-application" },
+  { icon: <FaSearch size={26} />,       title: "Track Status",          path: "/track-status" },
+  { icon: <FaPrint size={26} />,        title: "Print Application",     path: "/print-application" },
+  { icon: <FaUpload size={26} />,       title: "Re-Upload Document",    path: "/reupload-document" },
+];
+
+const steps = [
+  "Apply for a new visa application.",
+  "Complete a partially filled application.",
+  "Track your application status.",
+  "Print your submitted application.",
+  "Re-upload rejected or missing documents.",
+];
+
+function Dashboard() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="applicant" backPath="/dashboard" />
+
+      <div className="page-content" style={{ maxWidth: 900 }}>
+        <h1 className="section-title">Applicant Dashboard</h1>
+        <p className="section-sub">Manage every step of your visa application from here.</p>
+
+        {/* Instructions */}
+        <div className="card" style={{ marginBottom: 36 }}>
+          <p style={{ fontWeight: 600, marginBottom: 14, fontSize: 15 }}>How to use this portal</p>
+          <ol style={{ paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8 }}>
+            {steps.map((s, i) => (
+              <li key={i} style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.5 }}>{s}</li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Navigation Cards */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 20, justifyContent: "flex-start" }}>
+          {cards.map((c, i) => (
+            <DashboardCard key={i} icon={c.icon} title={c.title} onClick={() => navigate(c.path)} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardCard({ icon, title, onClick }) {
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: 168, minHeight: 160,
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: "var(--radius-md)", cursor: "pointer",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14,
+        padding: "24px 16px",
+        boxShadow: hovered ? "var(--shadow-md)" : "var(--shadow-sm)",
+        transform: hovered ? "translateY(-4px)" : "none",
+        transition: "all 0.22s ease",
+        borderColor: hovered ? "var(--border-strong)" : "var(--border)",
+      }}
+    >
+      <div style={{ color: "var(--text-primary)" }}>{icon}</div>
+      <p style={{ fontWeight: 600, fontSize: 13, textAlign: "center", lineHeight: 1.4 }}>{title}</p>
+    </div>
+  );
+}
+
+export default Dashboard;
+
+
+
+===========================================
+FILE: src/pages/applicant/ApplyNewVisa.js
+===========================================
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../../components/Navbar";
+import api from "../../services/api";
+import useApplicationForm from "./forms/useApplicationForm";
+import FormSection from "./forms/FormSection";
+import ReviewSummary from "./forms/ReviewSummary";
+
+const STEPS = ["Application Details", "Upload Documents", "Review & Submit"];
+
+function ApplyNewVisa() {
+  const navigate = useNavigate();
+  const [progress, setProgress] = useState(0);
+  const [documents, setDocuments] = useState([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const { sectionsView, value, validate } = useApplicationForm();
+
+  function handleNextFromDetails(e) {
+    e.preventDefault();
+    setError("");
+    if (!validate()) {
+      setError("Please fix the highlighted fields before continuing.");
+      return;
+    }
+    setProgress(1);
+  }
+
+  async function handleSubmit() {
+    setError("");
+    setLoading(true);
+    try {
+      // 1. Create application as DRAFT.
+      const createRes = await api.post("/api/applications", value);
+      const applicationId = createRes.data.applicationId || createRes.data?.application?.applicationId;
+
+      // 2. Upload each document (multipart).
+      for (const file of documents) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("applicationId", applicationId);
+        await api.post("/api/documents/upload", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+
+      // 3. Submit (DRAFT â†’ SUBMITTED).
+      await api.put(`/api/applications/submit/${applicationId}`, value);
+
+      navigate("/payment", { state: { applicationId } });
+    } catch (err) {
+      setError(err.response?.data?.message || "Submission failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="applicant" backPath="/dashboard" />
+      <div className="page-content" style={{ maxWidth: 720 }}>
+        <h1 className="section-title">Apply for New Visa</h1>
+        <p className="section-sub">Fill out your application and upload required documents.</p>
+
+        {/* Progress indicator */}
+        <div style={{ display: "flex", gap: 0, marginBottom: 32 }}>
+          {STEPS.map((label, i) => (
+            <div key={i} style={{ flex: 1, textAlign: "center" }}>
+              <div
+                style={{
+                  height: 4,
+                  background: i <= progress ? "var(--accent)" : "var(--border)",
+                  marginBottom: 8, borderRadius: 4,
+                  transition: "background 0.3s",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: 12,
+                  color: i === progress ? "var(--text-primary)" : "var(--text-muted)",
+                  fontWeight: i === progress ? 600 : 400,
+                }}
+              >
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="card">
+          {error && <div className="msg-error">{error}</div>}
+
+          {/* Step 0 â€” schema-driven detail form */}
+          {progress === 0 && (
+            <form onSubmit={handleNextFromDetails}>
+              {sectionsView.map(({ section, values, errors, onChange }) => (
+                <FormSection
+                  key={section.key}
+                  section={section}
+                  values={values}
+                  errors={errors}
+                  onChange={onChange}
+                />
+              ))}
+              <button className="btn btn-primary" type="submit" style={{ width: "100%", marginTop: 8 }}>
+                Next: Upload Documents â†’
+              </button>
+            </form>
+          )}
+
+          {/* Step 1 â€” documents */}
+          {progress === 1 && (
+            <div>
+              <p style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: 18 }}>
+                Upload all required supporting documents (passport copy, photographs, etc.).
+              </p>
+              <div className="form-group">
+                <label>Documents</label>
+                <input
+                  type="file" multiple accept=".jpg,.jpeg,.png,.pdf"
+                  onChange={(e) => setDocuments(Array.from(e.target.files))}
+                />
+                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Accepted: JPG, PNG, PDF</span>
+              </div>
+              {documents.length > 0 && (
+                <ul style={{ paddingLeft: 18, marginBottom: 16 }}>
+                  {documents.map((f, i) => (
+                    <li key={i} style={{ fontSize: 13, color: "var(--text-secondary)" }}>{f.name}</li>
+                  ))}
+                </ul>
+              )}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button className="btn btn-outline" onClick={() => setProgress(0)} style={{ flex: 1 }}>â† Back</button>
+                <button
+                  className="btn btn-primary" onClick={() => setProgress(2)} style={{ flex: 1 }}
+                  disabled={documents.length === 0}
+                >
+                  Next: Review â†’
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2 â€” review */}
+          {progress === 2 && (
+            <div>
+              <p style={{ fontWeight: 600, marginBottom: 16 }}>Application Summary</p>
+              <ReviewSummary value={value} />
+              <p style={{ marginTop: 14, fontSize: 13, color: "var(--text-muted)" }}>
+                {documents.length} document(s) ready to upload.
+              </p>
+              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                <button className="btn btn-outline" onClick={() => setProgress(1)} style={{ flex: 1 }}>â† Back</button>
+                <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} style={{ flex: 1 }}>
+                  {loading ? "Submittingâ€¦" : "Submit & Proceed to Payment"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ApplyNewVisa;
+
+
+
+===========================================
+FILE: src/pages/applicant/CompleteApplication.js
+===========================================
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../../components/Navbar";
+import api from "../../services/api";
+import useApplicationForm from "./forms/useApplicationForm";
+import FormSection from "./forms/FormSection";
+
+/**
+ * Lists the user's DRAFT applications and lets them resume editing /
+ * submit using the same schema-driven form as ApplyNewVisa.
+ */
+function CompleteApplication() {
+  const navigate = useNavigate();
+  const [drafts, setDrafts] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await api.get("/api/applications/user");
+        const list = Array.isArray(res.data) ? res.data : res.data.applications || [];
+        setDrafts(list.filter((a) => a.status === "DRAFT"));
+      } catch {
+        setError("Could not load applications.");
+      }
+    }
+    load();
+  }, []);
+
+  if (selected) {
+    return <DraftEditor draft={selected} onBack={() => setSelected(null)} navigate={navigate} />;
+  }
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="applicant" backPath="/dashboard" />
+      <div className="page-content" style={{ maxWidth: 700 }}>
+        <h1 className="section-title">Complete Application</h1>
+        <p className="section-sub">Resume and submit your partially filled applications.</p>
+
+        {error && <div className="msg-error">{error}</div>}
+
+        {drafts.length === 0 ? (
+          <div className="card" style={{ textAlign: "center", color: "var(--text-muted)", padding: "40px 0" }}>
+            No draft applications found.
+          </div>
+        ) : (
+          drafts.map((app) => (
+            <div
+              key={app.applicationId || app._id}
+              className="card"
+              style={{ marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}
+            >
+              <div>
+                <p style={{ fontWeight: 600 }}>{app.applicationId || app._id}</p>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                  {app.destinationCountry || "â€”"} â€” {app.visaType || "â€”"}
+                </p>
+              </div>
+              <button className="btn btn-outline" onClick={() => setSelected(app)}>Resume â†’</button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DraftEditor({ draft, onBack, navigate }) {
+  const { sectionsView, value, validate } = useApplicationForm(draft);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const draftId = draft.applicationId || draft._id;
+
+  async function handleSaveDraft() {
+    setError("");
+    setSaved(false);
+    try {
+      await api.put(`/api/applications/draft/${draftId}`, value);
+      setSaved(true);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to save draft.");
+    }
+  }
+
+  async function handleSubmit() {
+    setError("");
+    if (!validate()) {
+      setError("Please fix the highlighted fields before submitting.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.put(`/api/applications/submit/${draftId}`, value);
+      navigate("/payment", { state: { applicationId: draftId } });
+    } catch (err) {
+      setError(err.response?.data?.message || "Submission failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="applicant" backPath="/dashboard" />
+      <div className="page-content" style={{ maxWidth: 720 }}>
+        <h1 className="section-title">Complete Application</h1>
+        <p className="section-sub">Editing draft {draftId}.</p>
+
+        <div className="card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <p style={{ fontWeight: 600 }}>Editing: {draftId}</p>
+            <button
+              onClick={onBack}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}
+            >
+              â† Back to list
+            </button>
+          </div>
+
+          {error && <div className="msg-error">{error}</div>}
+          {saved && <div className="msg-success">Draft saved successfully.</div>}
+
+          {sectionsView.map(({ section, values, errors, onChange }) => (
+            <FormSection
+              key={section.key}
+              section={section}
+              values={values}
+              errors={errors}
+              onChange={onChange}
+            />
+          ))}
+
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <button className="btn btn-outline" onClick={handleSaveDraft} style={{ flex: 1 }}>Save Draft</button>
+            <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} style={{ flex: 1 }}>
+              {loading ? "Submittingâ€¦" : "Submit Application"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default CompleteApplication;
+
+
+
+===========================================
+FILE: src/pages/applicant/TrackStatus.js
+===========================================
+import React, { useState } from "react";
+import Navbar from "../../components/Navbar";
+import api from "../../services/api";
+
+/* GET /api/applications/status/:id â†’ { status, history:[{status, at}] } */
+function TrackStatus() {
+  const [appId, setAppId]   = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError]   = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSearch(e) {
+    e.preventDefault();
+    setError(""); setResult(null);
+    if (!appId.trim()) return setError("Please enter an Application ID.");
+    try {
+      setLoading(true);
+      const res = await api.get(`/api/applications/status/${appId.trim()}`);
+      setResult(res.data);
+    } catch (err) {
+      setError(err.response?.data?.message || "Application not found.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function badgeClass(s) {
+    const map = {
+      DRAFT: "badge-draft",
+      SUBMITTED: "badge-pending",
+      PENDING: "badge-pending",
+      APPROVED: "badge-approved",
+      REJECTED: "badge-rejected",
+    };
+    return `badge ${map[s] || "badge-draft"}`;
+  }
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="applicant" backPath="/dashboard" />
+      <div className="page-content" style={{ maxWidth: 560 }}>
+        <h1 className="section-title">Track Application</h1>
+        <p className="section-sub">Enter your Application ID to see the current status and history.</p>
+
+        <div className="card" style={{ marginBottom: 24 }}>
+          {error && <div className="msg-error">{error}</div>}
+          <form onSubmit={handleSearch} style={{ display: "flex", gap: 10 }}>
+            <input
+              style={{ flex: 1, padding: "11px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 15, fontFamily: "var(--font-body)", outline: "none" }}
+              placeholder="Application ID (e.g. APP123)"
+              value={appId}
+              onChange={e => setAppId(e.target.value)}
+            />
+            <button className="btn btn-primary" type="submit" disabled={loading}>
+              {loading ? "Searchingâ€¦" : "Search"}
+            </button>
+          </form>
+        </div>
+
+        {result && (
+          <div className="card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <p style={{ fontWeight: 600 }}>Application ID: {appId}</p>
+              <span className={badgeClass(result.status)}>{result.status}</span>
+            </div>
+
+            <div className="divider" />
+            <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-muted)", marginBottom: 14 }}>
+              Status History
+            </p>
+            {result.history?.length > 0 ? (
+              result.history.map((item, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--border-strong)", flexShrink: 0 }} />
+                  <span className={badgeClass(item.status)}>{item.status}</span>
+                </div>
+              ))
+            ) : (
+              <p style={{ fontSize: 14, color: "var(--text-muted)" }}>No history available yet.</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default TrackStatus;
+
+
+
+===========================================
+FILE: src/pages/applicant/Payment.js
+===========================================
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import Navbar from "../../components/Navbar";
+import api from "../../services/api";
+
+const FEE = 5000; // fixed visa fee in INR
+
+/* POST /api/payments/create-order â†’ { orderId }
+   POST /api/payments/verify       â†’ { status }  */
+function Payment() {
+  const { state } = useLocation();
+  const navigate  = useNavigate();
+  const applicationId = state?.applicationId || "";
+
+  const [orderId, setOrderId]   = useState(null);
+  const [payStatus, setPayStatus] = useState(""); // "", "success", "failed"
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
+
+  useEffect(() => {
+    if (!applicationId) return;
+    async function createOrder() {
+      try {
+        setLoading(true);
+        const res = await api.post("/api/payments/create-order", { applicationId, amount: FEE });
+        setOrderId(res.data.orderId);
+      } catch {
+        setError("Failed to create payment order. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    createOrder();
+  }, [applicationId]);
+
+  async function handleVerify(paymentId) {
+    try {
+      setLoading(true);
+      const res = await api.post("/api/payments/verify", { orderId, paymentId, applicationId });
+      setPayStatus(res.data.status === "Success" ? "success" : "failed");
+    } catch {
+      setPayStatus("failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!applicationId) {
+    return (
+      <div className="page-wrapper">
+        <Navbar role="applicant" backPath="/dashboard" />
+        <div className="page-content" style={{ maxWidth: 480 }}>
+          <div className="msg-error">No application linked. Return to Dashboard.</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="applicant" backPath="/dashboard" />
+      <div className="page-content" style={{ maxWidth: 480 }}>
+        <h1 className="section-title">Payment</h1>
+        <p className="section-sub">Complete your visa fee payment to finalise the application.</p>
+
+        <div className="card">
+          {error && <div className="msg-error">{error}</div>}
+
+          {payStatus === "success" && (
+            <div>
+              <div className="msg-success">Payment successful. Your application has been submitted.</div>
+              <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => navigate("/dashboard")}>
+                Return to Dashboard
+              </button>
+            </div>
+          )}
+
+          {payStatus === "failed" && (
+            <div>
+              <div className="msg-error">Payment failed. Please try again.</div>
+              <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={() => handleVerify("RETRY_" + Date.now())}>
+                Retry Payment
+              </button>
+            </div>
+          )}
+
+          {payStatus === "" && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
+                <span style={{ color: "var(--text-secondary)" }}>Application ID</span>
+                <span style={{ fontWeight: 500 }}>{applicationId}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
+                <span style={{ color: "var(--text-secondary)" }}>Visa Fee</span>
+                <span style={{ fontWeight: 600 }}>â‚¹{FEE.toLocaleString()}</span>
+              </div>
+              {orderId && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
+                  <span style={{ color: "var(--text-secondary)" }}>Order ID</span>
+                  <span style={{ fontFamily: "monospace", fontSize: 13 }}>{orderId}</span>
+                </div>
+              )}
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "16px 0", lineHeight: 1.5 }}>
+                Secure payment via UPI, Card, or Net Banking. Sensitive payment details are not stored.
+              </p>
+              <button
+                className="btn btn-primary" style={{ width: "100%" }}
+                disabled={loading || !orderId}
+                onClick={() => handleVerify("PAY_" + Date.now())}  /* replace with real Razorpay handler */
+              >
+                {loading ? "Processingâ€¦" : "Pay â‚¹" + FEE.toLocaleString()}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Payment;
+
+
+
+===========================================
+FILE: src/pages/applicant/PrintApplication.js
+===========================================
+import React, { useState } from "react";
+import Navbar from "../../components/Navbar";
+import api from "../../services/api";
+
+/* GET /api/applications/:id/print â†’ { fileUrl } */
+function PrintApplication() {
+  const [appId, setAppId]       = useState("");
+  const [fileUrl, setFileUrl]   = useState("");
+  const [details, setDetails]   = useState(null);
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
+
+  async function handleFetch(e) {
+    e.preventDefault();
+    setError(""); setFileUrl(""); setDetails(null);
+    if (!appId.trim()) return setError("Please enter an Application ID.");
+    try {
+      setLoading(true);
+      const detailRes = await api.get(`/api/applications/${appId.trim()}`);
+      if (detailRes.data.status === "DRAFT") return setError("Only submitted applications can be printed.");
+      setDetails(detailRes.data);
+
+      const printRes = await api.get(`/api/applications/${appId.trim()}/print`);
+      setFileUrl(printRes.data.fileUrl);
+    } catch (err) {
+      setError(err.response?.data?.message || "Application not found.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="applicant" backPath="/dashboard" />
+      <div className="page-content" style={{ maxWidth: 560 }}>
+        <h1 className="section-title">Print Application</h1>
+        <p className="section-sub">Retrieve and download a PDF copy of your submitted application.</p>
+
+        <div className="card" style={{ marginBottom: 24 }}>
+          {error && <div className="msg-error">{error}</div>}
+          <form onSubmit={handleFetch} style={{ display: "flex", gap: 10 }}>
+            <input
+              style={{ flex: 1, padding: "11px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 15, fontFamily: "var(--font-body)", outline: "none" }}
+              placeholder="Application ID (e.g. APP123)"
+              value={appId}
+              onChange={e => setAppId(e.target.value)}
+            />
+            <button className="btn btn-primary" type="submit" disabled={loading}>
+              {loading ? "Loadingâ€¦" : "Fetch"}
+            </button>
+          </form>
+        </div>
+
+        {details && fileUrl && (
+          <div className="card">
+            <p style={{ fontWeight: 600, marginBottom: 16 }}>Application Details</p>
+            {[["Application ID", details.applicationId], ["Status", details.status]].map(([k, v]) => (
+              <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
+                <span style={{ color: "var(--text-secondary)" }}>{k}</span>
+                <span style={{ fontWeight: 500 }}>{v}</span>
+              </div>
+            ))}
+            <a
+              href={fileUrl} target="_blank" rel="noopener noreferrer"
+              className="btn btn-primary"
+              style={{ display: "inline-block", marginTop: 20, textDecoration: "none" }}
+            >
+              Download PDF
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default PrintApplication;
+
+
+
+===========================================
+FILE: src/pages/applicant/ReuploadDocument.js
+===========================================
+import React, { useState } from "react";
+import Navbar from "../../components/Navbar";
+import api from "../../services/api";
+
+/* PUT /api/documents/reupload/:id  (multipart) */
+function ReuploadDocument() {
+  const [appId, setAppId]     = useState("");
+  const [file, setFile]       = useState(null);
+  const [error, setError]     = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+
+  async function handleReupload(e) {
+    e.preventDefault();
+    setError(""); setSuccess("");
+    if (!appId.trim()) return setError("Application ID is required.");
+    if (!file)         return setError("Please select a document to upload.");
+    if (!confirmed)    return setError("Please confirm that you want to replace the existing document.");
+
+    const allowed = ["image/jpeg", "image/png", "application/pdf"];
+    if (!allowed.includes(file.type)) return setError("Only JPG, PNG, or PDF files are accepted.");
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+      setLoading(true);
+      await api.put(`/api/documents/reupload/${appId.trim()}`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setSuccess("Document updated successfully.");
+      setFile(null); setConfirmed(false);
+    } catch (err) {
+      setError(err.response?.data?.message || "Reupload failed. The deadline may have passed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="applicant" backPath="/dashboard" />
+      <div className="page-content" style={{ maxWidth: 520 }}>
+        <h1 className="section-title">Re-Upload Document</h1>
+        <p className="section-sub">Replace a rejected or missing document within the allowed time window.</p>
+
+        <div className="card">
+          {error   && <div className="msg-error">{error}</div>}
+          {success && <div className="msg-success">{success}</div>}
+
+          <form onSubmit={handleReupload}>
+            <div className="form-group">
+              <label>Application ID</label>
+              <input placeholder="e.g. APP123" value={appId} onChange={e => setAppId(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Replacement Document</label>
+              <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => setFile(e.target.files[0])} />
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Accepted: JPG, PNG, PDF</span>
+            </div>
+
+            {/* Confirmation checkbox â€” prevents accidental overwrite */}
+            <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "var(--text-secondary)", marginBottom: 20, cursor: "pointer" }}>
+              <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />
+              I confirm I want to replace the existing document.
+            </label>
+
+            <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: "100%" }}>
+              {loading ? "Uploadingâ€¦" : "Submit Document"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ReuploadDocument;
+
+
+
+===========================================
+FILE: src/pages/applicant/forms/applicationFormSchema.js
+===========================================
+/**
+ * Single source of truth for the applicant detail form.
+ *
+ * To add / remove / rename a field on the "Apply New Visa" or
+ * "Complete Application" pages, edit ONLY this file. The form input
+ * and the review summary will update automatically.
+ *
+ * Field config:
+ *   name:        unique key inside its section
+ *   label:       label shown to the user
+ *   type:        text | email | tel | date | select | checkbox | textarea
+ *   required:    boolean (only enforced for non-draft submission)
+ *   placeholder: optional placeholder text
+ *   options:     [string] â€” only for type: "select"
+ *   pattern:     RegExp â€” extra validation (e.g. /^[0-9]{10}$/)
+ *   patternMessage: error message shown when `pattern` fails
+ *   hideIf:      (sectionValues) => boolean â€” hides the field when true
+ *   width:       "full" | "half" â€” layout hint (default "full")
+ *
+ * Sections are rendered top-to-bottom in array order, then the user moves
+ * on to the documents step.
+ */
+
+const APPLICATION_SECTIONS = [
+  {
+    key: "personalDetails",
+    title: "Personal Details",
+    fields: [
+      { name: "fullName",        label: "Full Name",        type: "text",   required: true,  placeholder: "As on passport" },
+      { name: "gender",          label: "Gender",           type: "select", required: true,  options: ["Male", "Female", "Other"], width: "half" },
+      { name: "dateOfBirth",     label: "Date of Birth",    type: "date",   required: true,  width: "half" },
+      { name: "countryOfBirth",  label: "Country of Birth", type: "text",   required: true },
+      { name: "nationalIdNo",    label: "National ID No.",  type: "text",   required: true },
+      { name: "citizenship",     label: "Citizenship",      type: "text" },
+      {
+        name: "educationQualification",
+        label: "Education",
+        type: "select",
+        options: ["Below Matric", "Graduate", "Post Graduate", "Professional", "Other"],
+      },
+    ],
+  },
+
+  {
+    key: "passportDetails",
+    title: "Passport Details",
+    fields: [
+      {
+        name: "passportType",
+        label: "Passport Type",
+        type: "select",
+        required: true,
+        options: ["Ordinary", "Diplomatic", "Official", "Service"],
+      },
+      { name: "passportNumber", label: "Passport Number", type: "text", required: true },
+      { name: "placeOfIssue",   label: "Place of Issue",  type: "text", required: true },
+      { name: "dateOfIssue",    label: "Date of Issue",   type: "date", required: true, width: "half" },
+      { name: "dateOfExpiry",   label: "Date of Expiry",  type: "date", required: true, width: "half" },
+    ],
+  },
+
+  {
+    key: "addressDetails.presentAddress",
+    title: "Present Address",
+    fields: [
+      { name: "addressLine", label: "Address Line", type: "text", required: true },
+      { name: "district",    label: "District",     type: "text", width: "half" },
+      { name: "state",       label: "State",        type: "text", width: "half" },
+      { name: "country",     label: "Country",      type: "text", required: true, width: "half" },
+      { name: "postalCode",  label: "Postal Code",  type: "text", width: "half" },
+    ],
+  },
+
+  {
+    key: "addressDetails.permanentAddress",
+    title: "Permanent Address",
+    fields: [
+      { name: "sameAsPresent", label: "Same as present address", type: "checkbox" },
+      { name: "addressLine",   label: "Address Line", type: "text", required: true,
+        hideIf: (v) => v.sameAsPresent === true },
+      { name: "district",      label: "District",     type: "text", width: "half",
+        hideIf: (v) => v.sameAsPresent === true },
+      { name: "state",         label: "State",        type: "text", width: "half",
+        hideIf: (v) => v.sameAsPresent === true },
+      { name: "country",       label: "Country",      type: "text", required: true, width: "half",
+        hideIf: (v) => v.sameAsPresent === true },
+      { name: "postalCode",    label: "Postal Code",  type: "text", width: "half",
+        hideIf: (v) => v.sameAsPresent === true },
+    ],
+  },
+
+  {
+    key: "contactDetails",
+    title: "Contact",
+    fields: [
+      { name: "email", label: "Email", type: "email", required: true,
+        pattern: /^\S+@\S+\.\S+$/, patternMessage: "Enter a valid email" },
+      { name: "mobileNumber", label: "Mobile Number", type: "tel", required: true,
+        pattern: /^[0-9]{10}$/, patternMessage: "Enter a valid 10-digit mobile number", width: "half" },
+      { name: "alternateMobileNumber", label: "Alternate Mobile", type: "tel",
+        pattern: /^[0-9]{10}$/, patternMessage: "Enter a valid 10-digit mobile number", width: "half" },
+    ],
+  },
+
+  {
+    key: "visaInfo",
+    title: "Visa Information",
+    fields: [
+      { name: "visaType", label: "Visa Type", type: "select", required: true,
+        options: ["Tourist", "Business", "Student", "Transit", "Work"], width: "half" },
+      { name: "destinationCountry", label: "Destination Country", type: "text", required: true,
+        placeholder: "e.g. USA", width: "half" },
+    ],
+  },
+];
+
+export default APPLICATION_SECTIONS;
+
+
+
+===========================================
+FILE: src/pages/applicant/forms/FieldRenderer.js
+===========================================
+import React from "react";
+
+/**
+ * Renders a single form field based on its schema entry.
+ * The parent owns state and passes value + onChange.
+ */
+function FieldRenderer({ field, value, error, onChange }) {
+  const baseProps = {
+    name: field.name,
+    placeholder: field.placeholder || "",
+    onChange: (e) => {
+      const v = field.type === "checkbox" ? e.target.checked : e.target.value;
+      onChange(field.name, v);
+    },
+  };
+
+  let control;
+  switch (field.type) {
+    case "select":
+      control = (
+        <select {...baseProps} value={value ?? ""}>
+          <option value="">Selectâ€¦</option>
+          {(field.options || []).map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      );
+      break;
+
+    case "checkbox":
+      return (
+        <label
+          style={{
+            display: "flex", alignItems: "center", gap: 10,
+            fontSize: 14, color: "var(--text-secondary)",
+            cursor: "pointer", padding: "4px 0",
+          }}
+        >
+          <input type="checkbox" checked={!!value} {...baseProps} />
+          {field.label}
+        </label>
+      );
+
+    case "textarea":
+      control = <textarea rows={3} {...baseProps} value={value ?? ""} />;
+      break;
+
+    case "date":
+      control = <input type="date" {...baseProps} value={value ?? ""} />;
+      break;
+
+    default:
+      control = <input type={field.type || "text"} {...baseProps} value={value ?? ""} />;
+  }
+
+  return (
+    <div className="form-group">
+      <label>
+        {field.label}
+        {field.required && <span style={{ color: "var(--text-muted)" }}> *</span>}
+      </label>
+      {control}
+      {error && (
+        <span style={{ fontSize: 12, color: "#b00020", marginTop: 4, display: "block" }}>
+          {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export default FieldRenderer;
+
+
+
+===========================================
+FILE: src/pages/applicant/forms/FormSection.js
+===========================================
+import React from "react";
+import FieldRenderer from "./FieldRenderer";
+
+/**
+ * Renders one section of the application form. Each field is laid out
+ * full-width by default; fields with width: "half" share a row.
+ */
+function FormSection({ section, values, errors, onChange }) {
+  const visibleFields = section.fields.filter((f) =>
+    typeof f.hideIf === "function" ? !f.hideIf(values) : true
+  );
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <p
+        style={{
+          fontSize: 12, fontWeight: 700, textTransform: "uppercase",
+          letterSpacing: 0.5, color: "var(--text-muted)", marginBottom: 14,
+        }}
+      >
+        {section.title}
+      </p>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0 16px" }}>
+        {visibleFields.map((field) => (
+          <div
+            key={field.name}
+            style={{ flex: field.width === "half" ? "1 1 calc(50% - 8px)" : "1 1 100%", minWidth: 200 }}
+          >
+            <FieldRenderer
+              field={field}
+              value={values?.[field.name]}
+              error={errors?.[field.name]}
+              onChange={onChange}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default FormSection;
+
+
+
+===========================================
+FILE: src/pages/applicant/forms/formUtils.js
+===========================================
+/**
+ * Helpers for working with deeply-nested form state via dot-paths.
+ * The application schema uses paths like `addressDetails.presentAddress`,
+ * so we read/write nested objects without rewriting setState boilerplate
+ * for every field.
+ */
+
+export function getAt(obj, path) {
+  if (!path) return obj;
+  return path.split(".").reduce((acc, key) => (acc == null ? acc : acc[key]), obj);
+}
+
+export function setAt(obj, path, value) {
+  if (!path) return value;
+  const keys = path.split(".");
+  const next = Array.isArray(obj) ? [...obj] : { ...(obj || {}) };
+  let cursor = next;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const k = keys[i];
+    cursor[k] = { ...(cursor[k] || {}) };
+    cursor = cursor[k];
+  }
+  cursor[keys[keys.length - 1]] = value;
+  return next;
+}
+
+/**
+ * Validate a single section's values against its field schema.
+ * Returns { ok: boolean, errors: { [fieldName]: message } }.
+ */
+export function validateSection(section, sectionValues = {}) {
+  const errors = {};
+  for (const field of section.fields) {
+    if (typeof field.hideIf === "function" && field.hideIf(sectionValues)) continue;
+    const value = sectionValues[field.name];
+
+    if (field.required) {
+      const empty = value === undefined || value === null || value === "";
+      if (empty) {
+        errors[field.name] = `${field.label} is required`;
+        continue;
+      }
+    }
+
+    if (field.pattern && value) {
+      if (!field.pattern.test(String(value))) {
+        errors[field.name] = field.patternMessage || `${field.label} is invalid`;
+      }
+    }
+  }
+  return { ok: Object.keys(errors).length === 0, errors };
+}
+
+/**
+ * Validate every section against the full form value.
+ * Returns { ok, errors: { [sectionKey]: { [fieldName]: message } } }.
+ */
+export function validateAll(sections, formValue) {
+  const errors = {};
+  let ok = true;
+  for (const section of sections) {
+    const sectionValues = getAt(formValue, section.key) || {};
+    const res = validateSection(section, sectionValues);
+    if (!res.ok) {
+      errors[section.key] = res.errors;
+      ok = false;
+    }
+  }
+  return { ok, errors };
+}
+
+/**
+ * Build an empty form value matching the schema (so React inputs are
+ * controlled from the first render).
+ */
+export function buildEmptyForm(sections) {
+  let value = {};
+  for (const section of sections) {
+    const sectionValue = {};
+    for (const field of section.fields) {
+      sectionValue[field.name] = field.type === "checkbox" ? false : "";
+    }
+    value = setAt(value, section.key, sectionValue);
+  }
+  return value;
+}
+
+
+
+===========================================
+FILE: src/pages/applicant/forms/ReviewSummary.js
+===========================================
+import React from "react";
+import APPLICATION_SECTIONS from "./applicationFormSchema";
+import { getAt } from "./formUtils";
+
+/**
+ * Read-only summary of the entire application form, driven by the
+ * same schema as the inputs â€” adding a field updates this view too.
+ */
+function ReviewSummary({ value }) {
+  return (
+    <div>
+      {APPLICATION_SECTIONS.map((section) => {
+        const sectionValues = getAt(value, section.key) || {};
+        const visibleFields = section.fields.filter((f) =>
+          typeof f.hideIf === "function" ? !f.hideIf(sectionValues) : true
+        );
+        return (
+          <div key={section.key} style={{ marginBottom: 24 }}>
+            <p
+              style={{
+                fontSize: 12, fontWeight: 700, textTransform: "uppercase",
+                letterSpacing: 0.5, color: "var(--text-muted)", marginBottom: 10,
+              }}
+            >
+              {section.title}
+            </p>
+            {visibleFields.map((field) => {
+              const v = sectionValues[field.name];
+              const display =
+                field.type === "checkbox" ? (v ? "Yes" : "No") : v || "â€”";
+              return (
+                <div
+                  key={field.name}
+                  style={{
+                    display: "flex", justifyContent: "space-between",
+                    padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14,
+                  }}
+                >
+                  <span style={{ color: "var(--text-secondary)" }}>{field.label}</span>
+                  <span style={{ fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{display}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default ReviewSummary;
+
+
+
+===========================================
+FILE: src/pages/applicant/forms/useApplicationForm.js
+===========================================
+import { useCallback, useMemo, useState } from "react";
+import APPLICATION_SECTIONS from "./applicationFormSchema";
+import { buildEmptyForm, getAt, setAt, validateAll } from "./formUtils";
+
+/**
+ * Owns the application form state and exposes a small API the page
+ * components use to render sections and submit. All schema knowledge
+ * lives in `applicationFormSchema.js`.
+ */
+export default function useApplicationForm(initial) {
+  const [value, setValue] = useState(() => {
+    const empty = buildEmptyForm(APPLICATION_SECTIONS);
+    if (!initial) return empty;
+    // Shallow-merge each section so unspecified fields keep their empty defaults.
+    let merged = empty;
+    for (const section of APPLICATION_SECTIONS) {
+      const incoming = getAt(initial, section.key);
+      if (incoming) {
+        merged = setAt(merged, section.key, { ...getAt(merged, section.key), ...incoming });
+      }
+    }
+    return merged;
+  });
+
+  const [errors, setErrors] = useState({});
+
+  const handleSectionChange = useCallback((sectionKey) => (fieldName, fieldValue) => {
+    setValue((prev) => {
+      const sectionValues = getAt(prev, sectionKey) || {};
+      return setAt(prev, sectionKey, { ...sectionValues, [fieldName]: fieldValue });
+    });
+    // Clear that field's error as the user edits.
+    setErrors((prev) => {
+      const sectionErrors = prev[sectionKey];
+      if (!sectionErrors || !sectionErrors[fieldName]) return prev;
+      const { [fieldName]: _omit, ...rest } = sectionErrors;
+      return { ...prev, [sectionKey]: rest };
+    });
+  }, []);
+
+  const validate = useCallback(() => {
+    const res = validateAll(APPLICATION_SECTIONS, value);
+    setErrors(res.errors);
+    return res.ok;
+  }, [value]);
+
+  const sectionsView = useMemo(
+    () =>
+      APPLICATION_SECTIONS.map((section) => ({
+        section,
+        values: getAt(value, section.key) || {},
+        errors: errors[section.key] || {},
+        onChange: handleSectionChange(section.key),
+      })),
+    [value, errors, handleSectionChange]
+  );
+
+  return {
+    sections: APPLICATION_SECTIONS,
+    sectionsView,
+    value,
+    setValue,
+    errors,
+    validate,
+  };
+}
+
+
+
+===========================================
+FILE: src/pages/embassy/EmbassyLogin.js
+===========================================
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+/* POST /api/auth/officer/login â†’ { token, role:"OFFICER" } */
+function EmbassyLogin() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ embassyId: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setError("");
+    if (!form.embassyId || !form.password) return setError("All fields are required.");
+    try {
+      setLoading(true);
+      const res = await axios.post(`${BASE}/api/auth/officer/login`, form);
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.role);
+      navigate("/embassy/dashboard");
+    } catch {
+      setError("Invalid Embassy ID or password.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 28 }}>Embassy Officer Login</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 6 }}>
+            Sign in with your embassy credentials.
+          </p>
+        </div>
+        <div className="card">
+          {error && <div className="msg-error">{error}</div>}
+          <form onSubmit={handleLogin}>
+            <div className="form-group">
+              <label>Embassy ID</label>
+              <input placeholder="e.g. EMB101" value={form.embassyId}
+                onChange={e => setForm({ ...form, embassyId: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input type="password" placeholder="Enter password" value={form.password}
+                onChange={e => setForm({ ...form, password: e.target.value })} />
+            </div>
+            <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: "100%", marginTop: 8 }}>
+              {loading ? "Logging inâ€¦" : "Login"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default EmbassyLogin;
+
+
+
+===========================================
+FILE: src/pages/embassy/EmbassyDashboard.js
+===========================================
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import Navbar from "../../components/Navbar";
+
+const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+/* GET /api/officer/applications â†’ [{ applicationId, country }] */
+function EmbassyDashboard() {
+  const navigate = useNavigate();
+  const [applications, setApplications] = useState([]);
+  const [filtered, setFiltered]         = useState([]);
+  const [search, setSearch]             = useState("");
+  const [error, setError]               = useState("");
+  const [loading, setLoading]           = useState(true);
+
+  const token = localStorage.getItem("token");
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
+  useEffect(() => {
+    async function fetchApps() {
+      try {
+        const res = await axios.get(`${BASE}/api/officer/applications`, authHeaders);
+        setApplications(res.data);
+        setFiltered(res.data);
+      } catch {
+        setError("Failed to load applications.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchApps();
+  }, []);
+
+  function handleSearch(e) {
+    const q = e.target.value.toLowerCase();
+    setSearch(e.target.value);
+    setFiltered(applications.filter(a =>
+      a.applicationId.toLowerCase().includes(q) || a.country?.toLowerCase().includes(q)
+    ));
+  }
+
+  function badgeClass(s) {
+    const map = { Pending: "badge-pending", Approved: "badge-approved", Rejected: "badge-rejected" };
+    return `badge ${map[s] || "badge-draft"}`;
+  }
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="embassy" backPath="/embassy/dashboard" />
+      <div className="page-content">
+        <h1 className="section-title">Applications Dashboard</h1>
+        <p className="section-sub">Manage visa applications assigned to your country.</p>
+
+        {error && <div className="msg-error">{error}</div>}
+
+        {/* Search */}
+        <div style={{ marginBottom: 20 }}>
+          <input
+            placeholder="Search by Application ID or Countryâ€¦"
+            value={search} onChange={handleSearch}
+            style={{ padding: "11px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 14, fontFamily: "var(--font-body)", width: "100%", maxWidth: 380, outline: "none" }}
+          />
+        </div>
+
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          {loading ? (
+            <p style={{ padding: 28, color: "var(--text-muted)", fontSize: 14 }}>Loadingâ€¦</p>
+          ) : filtered.length === 0 ? (
+            <p style={{ padding: 28, color: "var(--text-muted)", fontSize: 14 }}>No applications found.</p>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Application ID</th>
+                  <th>Country</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(app => (
+                  <tr key={app.applicationId}>
+                    <td style={{ fontWeight: 500 }}>{app.applicationId}</td>
+                    <td>{app.country}</td>
+                    <td><span className={badgeClass(app.status)}>{app.status || "Pending"}</span></td>
+                    <td>
+                      <button className="btn btn-outline" style={{ fontSize: 13, padding: "7px 14px" }}
+                        onClick={() => navigate(`/embassy/application/${app.applicationId}`)}>
+                        Review â†’
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default EmbassyDashboard;
+
+
+
+===========================================
+FILE: src/pages/embassy/ApplicationDetail.js
+===========================================
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import Navbar from "../../components/Navbar";
+
+const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+/* GET /api/officer/applications/:id â†’ { applicationId, documents:[] }
+   PUT /api/officer/applications/:id/status â†’ { status, remarks } */
+function ApplicationDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [app, setApp]           = useState(null);
+  const [remarks, setRemarks]   = useState("");
+  const [error, setError]       = useState("");
+  const [success, setSuccess]   = useState("");
+  const [loading, setLoading]   = useState(true);
+  const [confirming, setConfirming] = useState(null); // "Approved" | "Rejected"
+
+  const token = localStorage.getItem("token");
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
+  useEffect(() => {
+    async function fetchDetail() {
+      try {
+        const res = await axios.get(`${BASE}/api/officer/applications/${id}`, authHeaders);
+        setApp(res.data);
+      } catch {
+        setError("Could not load application details.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDetail();
+  }, [id]);
+
+  async function handleDecision() {
+    setError(""); setSuccess("");
+    try {
+      await axios.put(`${BASE}/api/officer/applications/${id}/status`, { Status: confirming, Remarks: remarks }, authHeaders);
+      setSuccess(`Application ${confirming}.`);
+      setConfirming(null);
+      setApp(prev => ({ ...prev, status: confirming }));
+    } catch {
+      setError("Failed to update status. Please try again.");
+    }
+  }
+
+  if (loading) return <div className="page-wrapper"><div className="page-content" style={{ color: "var(--text-muted)" }}>Loadingâ€¦</div></div>;
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="embassy" backPath="/embassy/dashboard" />
+      <div className="page-content" style={{ maxWidth: 680 }}>
+        <button onClick={() => navigate("/embassy/dashboard")} style={{ background: "none", border: "none", fontSize: 13, color: "var(--text-muted)", cursor: "pointer", marginBottom: 20 }}>
+          â† Back to Applications
+        </button>
+
+        <h1 className="section-title">Application Review</h1>
+        <p className="section-sub">Review all details and documents before making a decision.</p>
+
+        {error   && <div className="msg-error">{error}</div>}
+        {success && <div className="msg-success">{success}</div>}
+
+        {app && (
+          <>
+            {/* Application Details */}
+            <div className="card" style={{ marginBottom: 20 }}>
+              <p style={{ fontWeight: 600, marginBottom: 16 }}>Application Details</p>
+              {[
+                ["Application ID", app.applicationId],
+                ["Status",         app.status],
+                ["Country",        app.country],
+                ["Visa Type",      app.visaType],
+                ["Passport ID",    app.passportId],
+                ["Full Name",      app.fullName],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
+                  <span style={{ color: "var(--text-secondary)" }}>{k}</span>
+                  <span style={{ fontWeight: 500 }}>{v || "â€”"}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Documents */}
+            <div className="card" style={{ marginBottom: 20 }}>
+              <p style={{ fontWeight: 600, marginBottom: 14 }}>Documents</p>
+              {app.documents?.length > 0 ? (
+                app.documents.map((doc, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Document {i + 1}</span>
+                    <a href={doc} target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-primary)", fontWeight: 500, textDecoration: "underline" }}>
+                      View
+                    </a>
+                  </div>
+                ))
+              ) : (
+                <p style={{ fontSize: 14, color: "var(--text-muted)" }}>No documents attached.</p>
+              )}
+            </div>
+
+            {/* Decision Panel â€” only if no decision yet */}
+            {!["Approved", "Rejected"].includes(app.status) && (
+              <div className="card">
+                <p style={{ fontWeight: 600, marginBottom: 14 }}>Make a Decision</p>
+                <div className="form-group">
+                  <label>Remarks (optional)</label>
+                  <textarea rows={3} placeholder="Add review remarksâ€¦" value={remarks}
+                    onChange={e => setRemarks(e.target.value)}
+                    style={{ padding: "11px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontFamily: "var(--font-body)", fontSize: 14, resize: "vertical", outline: "none" }}
+                  />
+                </div>
+
+                {!confirming ? (
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <button className="btn btn-success" style={{ flex: 1 }} onClick={() => setConfirming("Approved")}>Approve</button>
+                    <button className="btn btn-danger"  style={{ flex: 1 }} onClick={() => setConfirming("Rejected")}>Reject</button>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontSize: 14, marginBottom: 14, color: "var(--text-secondary)" }}>
+                      Confirm: <strong>{confirming}</strong> this application?
+                    </p>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setConfirming(null)}>Cancel</button>
+                      <button className={`btn ${confirming === "Approved" ? "btn-success" : "btn-danger"}`} style={{ flex: 1 }} onClick={handleDecision}>
+                        Confirm {confirming}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default ApplicationDetail;
+
+
+
+===========================================
+FILE: src/pages/admin/AdminLogin.js
+===========================================
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+/* POST /api/auth/admin/login â†’ { token, role:"ADMIN" } */
+function AdminLogin() {
+  const navigate = useNavigate();
+  const [form, setForm]   = useState({ Username: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setError("");
+    if (!form.Username || !form.password) return setError("All fields are required.");
+    try {
+      setLoading(true);
+      const res = await axios.post(`${BASE}/api/auth/admin/login`, form);
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.role);
+      navigate("/admin/dashboard");
+    } catch {
+      setError("Invalid credentials.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <div style={{ width: "100%", maxWidth: 380 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 28 }}>Admin Login</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 6 }}>
+            Restricted access â€” authorised personnel only.
+          </p>
+        </div>
+        <div className="card">
+          {error && <div className="msg-error">{error}</div>}
+          <form onSubmit={handleLogin}>
+            <div className="form-group">
+              <label>Username</label>
+              <input placeholder="admin" value={form.Username}
+                onChange={e => setForm({ ...form, Username: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input type="password" placeholder="Enter password" value={form.password}
+                onChange={e => setForm({ ...form, password: e.target.value })} />
+            </div>
+            <button className="btn btn-primary" type="submit" disabled={loading} style={{ width: "100%", marginTop: 8 }}>
+              {loading ? "Logging inâ€¦" : "Login"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default AdminLogin;
+
+
+
+===========================================
+FILE: src/pages/admin/AdminDashboard.js
+===========================================
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { FaClipboardList, FaBuilding } from "react-icons/fa";
+import Navbar from "../../components/Navbar";
+
+const sections = [
+  { icon: <FaClipboardList size={26} />, title: "All Applications", desc: "View and filter all visa applications.", path: "/admin/applications" },
+  { icon: <FaBuilding size={26} />,      title: "Embassy Management", desc: "Add, update, or remove embassies.",      path: "/admin/embassies"    },
+];
+
+function AdminDashboard() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="admin" backPath="/admin/dashboard" />
+      <div className="page-content" style={{ maxWidth: 700 }}>
+        <h1 className="section-title">Admin Dashboard</h1>
+        <p className="section-sub">Manage visa applications and embassy records system-wide.</p>
+
+        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+          {sections.map((s, i) => (
+            <AdminCard key={i} {...s} onClick={() => navigate(s.path)} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminCard({ icon, title, desc, onClick }) {
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: "var(--radius-md)", padding: "32px 28px",
+        width: 240, cursor: "pointer",
+        boxShadow: hovered ? "var(--shadow-md)" : "var(--shadow-sm)",
+        transform: hovered ? "translateY(-4px)" : "none",
+        transition: "all 0.22s ease",
+        borderColor: hovered ? "var(--border-strong)" : "var(--border)",
+      }}
+    >
+      <div style={{ marginBottom: 14, color: "var(--text-primary)" }}>{icon}</div>
+      <p style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>{title}</p>
+      <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>{desc}</p>
+    </div>
+  );
+}
+
+export default AdminDashboard;
+
+
+
+===========================================
+FILE: src/pages/admin/AllApplications.js
+===========================================
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import Navbar from "../../components/Navbar";
+
+const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+/* GET /api/admin/applications             â†’ all applications
+   GET /api/admin/applications?country=USA â†’ filtered */
+function AllApplications() {
+  const [applications, setApplications] = useState([]);
+  const [country, setCountry]           = useState("");
+  const [search, setSearch]             = useState("");
+  const [error, setError]               = useState("");
+  const [loading, setLoading]           = useState(false);
+
+  const token = localStorage.getItem("token");
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
+  async function fetchApplications(countryFilter = "") {
+    setError(""); setLoading(true);
+    try {
+      const url = countryFilter
+        ? `${BASE}/api/admin/applications?country=${countryFilter}`
+        : `${BASE}/api/admin/applications`;
+      const res = await axios.get(url, authHeaders);
+      setApplications(res.data);
+    } catch {
+      setError("Failed to load applications.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { fetchApplications(); }, []);
+
+  function handleFilter(e) {
+    e.preventDefault();
+    fetchApplications(country.trim());
+  }
+
+  function badgeClass(s) {
+    const map = { Pending: "badge-pending", Approved: "badge-approved", Rejected: "badge-rejected" };
+    return `badge ${map[s] || "badge-draft"}`;
+  }
+
+  const displayed = applications.filter(a =>
+    !search || a.applicationId.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="admin" backPath="/admin/dashboard" />
+      <div className="page-content">
+        <h1 className="section-title">All Applications</h1>
+        <p className="section-sub">View and filter visa applications across all countries.</p>
+
+        {error && <div className="msg-error">{error}</div>}
+
+        {/* Filter row */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+          <form onSubmit={handleFilter} style={{ display: "flex", gap: 10 }}>
+            <input
+              placeholder="Filter by countryâ€¦"
+              value={country} onChange={e => setCountry(e.target.value)}
+              style={{ padding: "10px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 14, fontFamily: "var(--font-body)", outline: "none", width: 200 }}
+            />
+            <button className="btn btn-primary" type="submit">Filter</button>
+            {country && (
+              <button className="btn btn-outline" type="button" onClick={() => { setCountry(""); fetchApplications(); }}>Clear</button>
+            )}
+          </form>
+          <input
+            placeholder="Search by Application IDâ€¦"
+            value={search} onChange={e => setSearch(e.target.value)}
+            style={{ padding: "10px 14px", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", fontSize: 14, fontFamily: "var(--font-body)", outline: "none", width: 240 }}
+          />
+        </div>
+
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          {loading ? (
+            <p style={{ padding: 28, color: "var(--text-muted)", fontSize: 14 }}>Loadingâ€¦</p>
+          ) : displayed.length === 0 ? (
+            <p style={{ padding: 28, color: "var(--text-muted)", fontSize: 14 }}>No applications found.</p>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Application ID</th>
+                  <th>Country</th>
+                  <th>Visa Type</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayed.map(app => (
+                  <tr key={app.applicationId}>
+                    <td style={{ fontWeight: 500 }}>{app.applicationId}</td>
+                    <td>{app.country || "â€”"}</td>
+                    <td>{app.visaType || "â€”"}</td>
+                    <td><span className={badgeClass(app.status)}>{app.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default AllApplications;
+
+
+
+===========================================
+FILE: src/pages/admin/EmbassyManagement.js
+===========================================
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import Navbar from "../../components/Navbar";
+
+const BASE = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+/* GET    /api/admin/embassies       â†’ list
+   POST   /api/admin/embassies       â†’ add
+   PUT    /api/admin/embassies/:id   â†’ update
+   DELETE /api/admin/embassies/:id   â†’ delete */
+function EmbassyManagement() {
+  const [embassies, setEmbassies] = useState([]);
+  const [form, setForm]           = useState({ name: "", country: "" });
+  const [editId, setEditId]       = useState(null);    // null = add mode
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [error, setError]         = useState("");
+  const [success, setSuccess]     = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [showForm, setShowForm]   = useState(false);
+
+  const token = localStorage.getItem("token");
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
+  async function fetchEmbassies() {
+    try {
+      const res = await axios.get(`${BASE}/api/admin/embassies`, authHeaders);
+      setEmbassies(res.data);
+    } catch {
+      setError("Failed to load embassies.");
+    }
+  }
+
+  useEffect(() => { fetchEmbassies(); }, []);
+
+  function openAdd() {
+    setForm({ name: "", country: "" }); setEditId(null); setShowForm(true); setError(""); setSuccess("");
+  }
+
+  function openEdit(emb) {
+    setForm({ name: emb.name, country: emb.country }); setEditId(emb._id || emb.id); setShowForm(true); setError(""); setSuccess("");
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setError(""); setSuccess("");
+    if (!form.name || !form.country) return setError("Embassy name and country are required.");
+    try {
+      setLoading(true);
+      if (editId) {
+        await axios.put(`${BASE}/api/admin/embassies/${editId}`, form, authHeaders);
+        setSuccess("Embassy updated successfully.");
+      } else {
+        await axios.post(`${BASE}/api/admin/embassies`, form, authHeaders);
+        setSuccess("Embassy added successfully.");
+      }
+      setShowForm(false); setEditId(null);
+      await fetchEmbassies();
+    } catch (err) {
+      setError(err.response?.data?.message || "Operation failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    setError(""); setSuccess("");
+    try {
+      await axios.delete(`${BASE}/api/admin/embassies/${id}`, authHeaders);
+      setSuccess("Embassy deleted successfully.");
+      setConfirmDelete(null);
+      await fetchEmbassies();
+    } catch (err) {
+      setError(err.response?.data?.message || "Deletion failed.");
+    }
+  }
+
+  return (
+    <div className="page-wrapper">
+      <Navbar role="admin" backPath="/admin/dashboard" />
+      <div className="page-content" style={{ maxWidth: 800 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+          <div>
+            <h1 className="section-title" style={{ marginBottom: 4 }}>Embassy Management</h1>
+            <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>Add, update, or remove embassies from the system.</p>
+          </div>
+          <button className="btn btn-primary" onClick={openAdd}>+ Add Embassy</button>
+        </div>
+
+        {error   && <div className="msg-error">{error}</div>}
+        {success && <div className="msg-success">{success}</div>}
+
+        {/* Add / Edit Form */}
+        {showForm && (
+          <div className="card" style={{ marginBottom: 24 }}>
+            <p style={{ fontWeight: 600, marginBottom: 18 }}>{editId ? "Edit Embassy" : "Add New Embassy"}</p>
+            <form onSubmit={handleSave}>
+              <div style={{ display: "flex", gap: 16 }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Embassy Name</label>
+                  <input placeholder="e.g. USA Embassy" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Country</label>
+                  <input placeholder="e.g. USA" value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} />
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button className="btn btn-outline" type="button" onClick={() => setShowForm(false)}>Cancel</button>
+                <button className="btn btn-primary" type="submit" disabled={loading}>
+                  {loading ? "Savingâ€¦" : editId ? "Update" : "Add Embassy"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Embassy Table */}
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          {embassies.length === 0 ? (
+            <p style={{ padding: 28, color: "var(--text-muted)", fontSize: 14 }}>No embassies found.</p>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Embassy Name</th>
+                  <th>Country</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {embassies.map(emb => (
+                  <tr key={emb._id || emb.id}>
+                    <td style={{ fontWeight: 500 }}>{emb.name}</td>
+                    <td>{emb.country}</td>
+                    <td>
+                      {confirmDelete === (emb._id || emb.id) ? (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <span style={{ fontSize: 13, color: "var(--text-secondary)", alignSelf: "center" }}>Confirm delete?</span>
+                          <button className="btn btn-danger" style={{ fontSize: 12, padding: "5px 10px" }} onClick={() => handleDelete(emb._id || emb.id)}>Yes</button>
+                          <button className="btn btn-outline" style={{ fontSize: 12, padding: "5px 10px" }} onClick={() => setConfirmDelete(null)}>No</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button className="btn btn-outline" style={{ fontSize: 12, padding: "6px 12px" }} onClick={() => openEdit(emb)}>Edit</button>
+                          <button className="btn btn-danger" style={{ fontSize: 12, padding: "6px 12px" }} onClick={() => setConfirmDelete(emb._id || emb.id)}>Delete</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default EmbassyManagement;
+
+
+
+===========================================
+FILE: src/styles/global.css
+===========================================
+/* ===== EVIDMS Design System â€” Bleach & White Palette ===== */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
+
+:root {
+  /* Core palette */
+  --bg:           #F7F7F5;
+  --surface:      #FFFFFF;
+  --surface-2:    #F0F0ED;
+  --border:       #E2E2DC;
+  --border-strong:#C8C8C0;
+
+  /* Text */
+  --text-primary:   #111110;
+  --text-secondary: #5A5A54;
+  --text-muted:     #9A9A94;
+
+  /* Accent â€” single authoritative ink */
+  --accent:       #1B1B18;
+  --accent-hover: #333330;
+
+  /* Status */
+  --status-pending:  #92703A;
+  --status-bg-pend:  #FDF6EC;
+  --status-approved: #2E6B3E;
+  --status-bg-appr:  #EDF6F0;
+  --status-rejected: #8B2E2E;
+  --status-bg-rej:   #F6EDEE;
+
+  /* Spacing */
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  18px;
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.10);
+
+  /* Typography */
+  --font-body:    'DM Sans', sans-serif;
+  --font-display: 'DM Serif Display', serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Shared Layout ---- */
+.page-wrapper {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.page-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-header .brand {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+.page-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+/* ---- Cards ---- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---- Form Elements ---- */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--accent);
+}
+
+.form-group input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #FFFFFF;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+}
+.btn-outline:hover { background: var(--surface-2); }
+
+.btn-danger {
+  background: #8B2E2E;
+  color: #FFFFFF;
+}
+.btn-danger:hover { background: #6E2020; }
+
+.btn-success {
+  background: #2E6B3E;
+  color: #FFFFFF;
+}
+.btn-success:hover { background: #235430; }
+
+/* ---- Status Badge ---- */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.badge-pending  { background: var(--status-bg-pend); color: var(--status-pending); }
+.badge-approved { background: var(--status-bg-appr); color: var(--status-approved); }
+.badge-rejected { background: var(--status-bg-rej);  color: var(--status-rejected); }
+.badge-draft    { background: var(--surface-2);      color: var(--text-secondary); }
+
+/* ---- Table ---- */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.data-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+.data-table tr:hover td { background: var(--surface-2); }
+
+/* ---- Error / Info messages ---- */
+.msg-error {
+  background: var(--status-bg-rej);
+  color: var(--status-rejected);
+  border: 1px solid #E8C0C0;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.msg-success {
+  background: var(--status-bg-appr);
+  color: var(--status-approved);
+  border: 1px solid #B0D8BE;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* ---- Divider ---- */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 24px 0;
+}
+
+/* ---- Section title ---- */
+.section-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.section-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+}
+
+
+

@@ -49,7 +49,7 @@ function ApplicantLogin() {
       setLoading(true);
       const res = await api.post(`/api/auth/verify-otp`, { passportId, purpose: "login", otp });
       localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.user?.role || "applicant");
+      localStorage.setItem("role", res.data.user?.role?.toLowerCase() || "applicant");
       navigate("/dashboard");
     } catch {
       setError("Invalid or expired OTP.");

@@ -8,6 +8,7 @@ const config = require("../config/env");
  * turn reads from `.env`. Update the values in `.env` to change them across
  * the entire backend.
  */
+process.env.NODE_TLS_REJECT_UNAUTHORIZED="0";
 exports.sendEmailOtp = async (email, otp) => {
   try {
     const client = SibApiV3Sdk.ApiClient.instance;

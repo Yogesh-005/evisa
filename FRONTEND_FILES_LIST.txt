@@ -1,0 +1,774 @@
+===========================================
+EVIDMS FRONTEND - COMPLETE FILE LIST
+===========================================
+
+📁 PROJECT STRUCTURE
+-------------------------------------------
+src/
+├── components/
+│   ├── Navbar.js                       - Shared navigation bar component
+│   └── RequireAuth.js                  - Protected route wrapper component
+├── config/
+│   └── index.js                        - Frontend configuration (API URL)
+├── pages/
+│   ├── Landing.js                      - Public landing page with role selector
+│   ├── admin/
+│   │   ├── AdminDashboard.js           - Admin navigation hub
+│   │   ├── AdminLogin.js               - Admin authentication page
+│   │   ├── AllApplications.js          - System-wide application view
+│   │   └── EmbassyManagement.js        - Embassy CRUD operations
+│   ├── applicant/
+│   │   ├── ApplicantLogin.js           - Two-step OTP login
+│   │   ├── ApplicantRegister.js        - Registration with passport scan
+│   │   ├── Dashboard.js                - Applicant home dashboard
+│   │   ├── ApplyNewVisa.js             - 3-step visa application form
+│   │   ├── CompleteApplication.js      - Draft management page
+│   │   ├── TrackStatus.js              - Application status tracking
+│   │   ├── Payment.js                  - Payment processing page
+│   │   ├── PrintApplication.js         - PDF download page
+│   │   ├── ReuploadDocument.js         - Document replacement page
+│   │   └── forms/
+│   │       ├── applicationFormSchema.js - Form field definitions
+│   │       ├── FieldRenderer.js        - Dynamic form field component
+│   │       ├── FormSection.js          - Form section wrapper
+│   │       ├── formUtils.js            - Form helper functions
+│   │       ├── ReviewSummary.js        - Application review component
+│   │       └── useApplicationForm.js   - Custom form management hook
+│   └── embassy/
+│       ├── EmbassyLogin.js             - Embassy officer login
+│       ├── EmbassyDashboard.js         - Officer's application list
+│       └── ApplicationDetail.js        - Application review & approval
+├── services/
+│   └── api.js                          - Axios API client configuration
+├── styles/
+│   └── global.css                      - Global styles & design system
+├── App.js                              - Main app with route definitions
+└── index.js                            - React app entry point
+
+public/
+└── index.html                          - HTML template
+
+Root Files:
+├── package.json                        - Dependencies and scripts
+├── .gitignore                          - Git ignore rules
+├── .env.example                        - Environment template
+└── README.md                           - Project documentation
+
+===========================================
+📄 FILE DETAILS
+===========================================
+
+-------------------------------------------
+1. src/index.js
+-------------------------------------------
+Purpose: React application entry point
+Features:
+  - Renders App component into root div
+  - Imports global.css
+  - Wraps app in React.StrictMode
+
+-------------------------------------------
+2. src/App.js
+-------------------------------------------
+Purpose: Main application component with routing
+Features:
+  - React Router DOM v6 configuration
+  - Route definitions for all roles
+  - BrowserRouter wrapper
+
+Routes Defined:
+  Public:
+    - / → Landing
+
+  Applicant:
+    - /applicant/login → ApplicantLogin
+    - /applicant/register → ApplicantRegister
+    - /dashboard → Dashboard
+    - /apply-new-visa → ApplyNewVisa
+    - /complete-application → CompleteApplication
+    - /track-status → TrackStatus
+    - /print-application → PrintApplication
+    - /reupload-document → ReuploadDocument
+    - /payment → Payment
+
+  Embassy:
+    - /embassy/login → EmbassyLogin
+    - /embassy/dashboard → EmbassyDashboard
+    - /embassy/application/:id → ApplicationDetail
+
+  Admin:
+    - /admin/login → AdminLogin
+    - /admin/dashboard → AdminDashboard
+    - /admin/applications → AllApplications
+    - /admin/embassies → EmbassyManagement
+
+-------------------------------------------
+3. src/config/index.js
+-------------------------------------------
+Purpose: Frontend configuration
+Exports:
+  - API_URL: Backend API base URL
+    Default: http://localhost:5000
+    From env: REACT_APP_API_URL
+
+-------------------------------------------
+4. src/services/api.js
+-------------------------------------------
+Purpose: Axios HTTP client configuration
+Features:
+  - Base URL configuration
+  - Request interceptor (adds JWT token)
+  - Response interceptor (error handling)
+  - Auto-redirects to login on 401
+
+Exports:
+  - api: Configured axios instance
+
+-------------------------------------------
+5. src/components/Navbar.js
+-------------------------------------------
+Purpose: Shared navigation bar
+Features:
+  - Logo/branding
+  - User name display
+  - Logout functionality
+  - Responsive design
+
+Props:
+  - userName: String (optional)
+
+-------------------------------------------
+6. src/components/RequireAuth.js
+-------------------------------------------
+Purpose: Protected route wrapper
+Features:
+  - Checks for JWT token in localStorage
+  - Redirects to login if not authenticated
+  - Wraps protected components
+
+Usage:
+  <Route path="/dashboard" element={
+    <RequireAuth><Dashboard /></RequireAuth>
+  } />
+
+-------------------------------------------
+7. src/pages/Landing.js
+-------------------------------------------
+Purpose: Public landing page
+Features:
+  - Three role selector cards:
+    * Applicant
+    * Embassy Officer
+    * Admin
+  - FAQ sidebar (collapsible)
+  - Responsive layout
+
+Navigation:
+  - Applicant → /applicant/login
+  - Embassy → /embassy/login
+  - Admin → /admin/login
+
+-------------------------------------------
+8. src/pages/applicant/ApplicantLogin.js
+-------------------------------------------
+Purpose: Two-step OTP login
+Features:
+  - Step 1: Enter passport ID
+  - Step 2: Enter OTP (6 digits)
+  - OTP resend functionality
+  - Auto-redirect to dashboard on success
+
+API Calls:
+  - POST /api/auth/send-otp
+  - POST /api/auth/verify-otp
+
+-------------------------------------------
+9. src/pages/applicant/ApplicantRegister.js
+-------------------------------------------
+Purpose: New applicant registration
+Features:
+  - Registration form with validation
+  - Passport scan upload
+  - OTP verification
+  - Auto-login after registration
+
+Fields:
+  - Full Name
+  - Email
+  - Mobile Number
+  - Passport ID
+  - Date of Birth
+  - Nationality
+  - Passport Scan (optional)
+
+API Calls:
+  - POST /api/auth/send-otp (purpose: register)
+  - POST /api/auth/verify-otp (purpose: register)
+
+-------------------------------------------
+10. src/pages/applicant/Dashboard.js
+-------------------------------------------
+Purpose: Applicant home dashboard
+Features:
+  - Welcome message
+  - Instructions box
+  - 5 navigation cards:
+    * Apply for New Visa
+    * Complete Application
+    * Track Status
+    * Print Application
+    * Reupload Document
+  - Icons from react-icons
+
+-------------------------------------------
+11. src/pages/applicant/ApplyNewVisa.js
+-------------------------------------------
+Purpose: 3-step visa application form
+Features:
+  - Step 1: Personal Information
+  - Step 2: Travel Information
+  - Step 3: Document Upload
+  - Form validation
+  - Draft save functionality
+  - Review & submit
+
+Uses:
+  - useApplicationForm hook
+  - FormSection component
+  - FieldRenderer component
+  - ReviewSummary component
+
+API Calls:
+  - POST /api/applications (create draft)
+  - PUT /api/applications/draft/:id (save)
+  - PUT /api/applications/submit/:id (submit)
+  - POST /api/documents/upload (documents)
+
+-------------------------------------------
+12. src/pages/applicant/CompleteApplication.js
+-------------------------------------------
+Purpose: Draft application management
+Features:
+  - Lists all draft applications
+  - Resume draft functionality
+  - Delete draft option
+  - Save progress
+  - Submit application
+
+API Calls:
+  - GET /api/applications/user
+  - PUT /api/applications/draft/:id
+  - PUT /api/applications/submit/:id
+  - DELETE /api/applications/:id
+
+-------------------------------------------
+13. src/pages/applicant/TrackStatus.js
+-------------------------------------------
+Purpose: Application status tracking
+Features:
+  - Application ID search
+  - Current status display
+  - Status history timeline
+  - Document list
+  - Visual status indicators
+
+API Calls:
+  - GET /api/applications/status/:id
+
+-------------------------------------------
+14. src/pages/applicant/Payment.js
+-------------------------------------------
+Purpose: Payment processing
+Features:
+  - Payment summary display
+  - Fee calculation
+  - Payment order creation
+  - Payment verification
+  - Receipt generation
+
+API Calls:
+  - POST /api/payments/create-order
+  - POST /api/payments/verify
+
+-------------------------------------------
+15. src/pages/applicant/PrintApplication.js
+-------------------------------------------
+Purpose: Application PDF download
+Features:
+  - Application ID input
+  - PDF generation trigger
+  - Download initiation
+  - Print-friendly format
+
+API Calls:
+  - GET /api/applications/:id/print
+
+-------------------------------------------
+16. src/pages/applicant/ReuploadDocument.js
+-------------------------------------------
+Purpose: Document replacement
+Features:
+  - Application ID input
+  - Document type selection
+  - File upload
+  - Confirmation checkbox
+  - File type validation
+
+API Calls:
+  - PUT /api/documents/reupload/:id
+
+-------------------------------------------
+17. src/pages/applicant/forms/applicationFormSchema.js
+-------------------------------------------
+Purpose: Form field definitions
+Exports:
+  - formSections: Array of form sections
+  - Each section contains fields with:
+    * name
+    * label
+    * type (text, email, date, select, etc.)
+    * required
+    * validation rules
+    * options (for select fields)
+
+Sections:
+  - Personal Details
+  - Passport Details
+  - Address Details
+  - Contact Details
+
+-------------------------------------------
+18. src/pages/applicant/forms/FieldRenderer.js
+-------------------------------------------
+Purpose: Dynamic form field component
+Features:
+  - Renders different input types
+  - Handles validation
+  - Shows error messages
+  - Supports: text, email, date, select, textarea
+
+Props:
+  - field: Field definition object
+  - value: Current value
+  - onChange: Change handler
+  - error: Error message
+
+-------------------------------------------
+19. src/pages/applicant/forms/FormSection.js
+-------------------------------------------
+Purpose: Form section wrapper
+Features:
+  - Section title
+  - Field grouping
+  - Collapsible sections
+  - Progress indicator
+
+Props:
+  - title: Section title
+  - fields: Array of fields
+  - values: Form values
+  - onChange: Change handler
+  - errors: Validation errors
+
+-------------------------------------------
+20. src/pages/applicant/forms/formUtils.js
+-------------------------------------------
+Purpose: Form helper functions
+Functions:
+  - validateField: Field-level validation
+  - validateForm: Form-level validation
+  - formatDate: Date formatting
+  - parseFormData: Data parsing
+  - prepareSubmission: Prepare data for API
+
+-------------------------------------------
+21. src/pages/applicant/forms/ReviewSummary.js
+-------------------------------------------
+Purpose: Application review component
+Features:
+  - Displays all form data
+  - Grouped by sections
+  - Edit buttons for each section
+  - Confirmation checkbox
+  - Submit button
+
+Props:
+  - formData: Complete form data
+  - onEdit: Edit handler
+  - onSubmit: Submit handler
+
+-------------------------------------------
+22. src/pages/applicant/forms/useApplicationForm.js
+-------------------------------------------
+Purpose: Custom form management hook
+Features:
+  - Form state management
+  - Validation handling
+  - Step navigation
+  - Draft save/load
+  - Submission handling
+
+Returns:
+  - formData: Current form values
+  - errors: Validation errors
+  - currentStep: Current step number
+  - handleChange: Field change handler
+  - handleNext: Next step handler
+  - handlePrevious: Previous step handler
+  - handleSubmit: Form submission handler
+  - saveDraft: Draft save handler
+
+-------------------------------------------
+23. src/pages/embassy/EmbassyLogin.js
+-------------------------------------------
+Purpose: Embassy officer authentication
+Features:
+  - Embassy ID input
+  - Password input
+  - Login validation
+  - Auto-redirect to dashboard
+
+API Calls:
+  - POST /api/auth/embassy-login
+
+-------------------------------------------
+24. src/pages/embassy/EmbassyDashboard.js
+-------------------------------------------
+Purpose: Officer's application list
+Features:
+  - Lists applications for officer's country
+  - Search functionality
+  - Filter by status
+  - Application preview cards
+  - Click to view details
+
+API Calls:
+  - GET /api/applications (filtered by country)
+
+-------------------------------------------
+25. src/pages/embassy/ApplicationDetail.js
+-------------------------------------------
+Purpose: Application review & approval
+Features:
+  - Full application details
+  - Document viewer
+  - Approve/Reject buttons
+  - Remarks input
+  - Confirmation dialog
+  - Status update
+
+API Calls:
+  - GET /api/applications/:id
+  - PUT /api/applications/:id (update status)
+
+-------------------------------------------
+26. src/pages/admin/AdminLogin.js
+-------------------------------------------
+Purpose: Admin authentication
+Features:
+  - Username input
+  - Password input
+  - Login validation
+  - Auto-redirect to dashboard
+
+API Calls:
+  - POST /api/auth/admin-login
+
+-------------------------------------------
+27. src/pages/admin/AdminDashboard.js
+-------------------------------------------
+Purpose: Admin navigation hub
+Features:
+  - Two navigation cards:
+    * All Applications
+    * Embassy Management
+  - System statistics
+  - Quick actions
+
+-------------------------------------------
+28. src/pages/admin/AllApplications.js
+-------------------------------------------
+Purpose: System-wide application view
+Features:
+  - Lists all applications
+  - Filter by country
+  - Search by application ID
+  - Status filter
+  - Export functionality
+  - Pagination
+
+API Calls:
+  - GET /api/applications (all)
+
+-------------------------------------------
+29. src/pages/admin/EmbassyManagement.js
+-------------------------------------------
+Purpose: Embassy CRUD operations
+Features:
+  - List all embassies
+  - Add new embassy
+  - Edit embassy details
+  - Delete embassy (with confirmation)
+  - Search/filter
+
+API Calls:
+  - GET /api/embassies
+  - POST /api/embassies
+  - PUT /api/embassies/:id
+  - DELETE /api/embassies/:id
+
+-------------------------------------------
+30. src/styles/global.css
+-------------------------------------------
+Purpose: Global styles & design system
+Features:
+  - CSS variables (bleach & white palette)
+  - Shared component styles:
+    * Cards
+    * Forms
+    * Buttons
+    * Tables
+    * Badges
+    * Navigation
+  - Responsive breakpoints
+  - Typography
+  - Spacing utilities
+
+Color Palette:
+  - Primary: Bleach tones
+  - Secondary: White
+  - Accent: Blue/Green
+  - Status colors: Success, Warning, Error
+
+-------------------------------------------
+31. public/index.html
+-------------------------------------------
+Purpose: HTML template
+Features:
+  - Root div (#root)
+  - Meta tags
+  - Title
+  - Favicon (optional)
+  - No-script message
+
+-------------------------------------------
+32. package.json
+-------------------------------------------
+Purpose: Project configuration
+Dependencies:
+  - react: ^18.2.0
+  - react-dom: ^18.2.0
+  - react-router-dom: ^6.20.0
+  - axios: ^1.6.2
+  - react-icons: ^4.12.0
+  - react-scripts: 5.0.1
+
+Scripts:
+  - start: react-scripts start
+  - build: react-scripts build
+  - test: react-scripts test
+  - eject: react-scripts eject
+
+-------------------------------------------
+33. .env.example
+-------------------------------------------
+Purpose: Environment template
+Variables:
+  REACT_APP_API_URL=http://localhost:5000
+
+-------------------------------------------
+34. .gitignore
+-------------------------------------------
+Purpose: Git ignore rules
+Ignores:
+  - /node_modules
+  - /build
+  - .env.local
+  - .env.development.local
+  - .env.test.local
+  - .env.production.local
+  - npm-debug.log*
+
+===========================================
+🎨 DESIGN SYSTEM (global.css)
+===========================================
+
+CSS Variables:
+  --primary-color
+  --secondary-color
+  --accent-color
+  --success-color
+  --warning-color
+  --error-color
+  --text-primary
+  --text-secondary
+  --border-color
+  --background-color
+  --card-background
+  --shadow-sm
+  --shadow-md
+  --shadow-lg
+
+Component Classes:
+  .card
+  .btn, .btn-primary, .btn-secondary
+  .form-group, .form-control
+  .table, .table-striped
+  .badge, .badge-success, .badge-warning
+  .navbar
+  .container
+  .row, .col
+
+===========================================
+🔐 AUTHENTICATION FLOW
+===========================================
+
+Applicant Registration:
+  1. Navigate to /applicant/register
+  2. Fill registration form
+  3. Upload passport scan (optional)
+  4. Submit → OTP sent to email
+  5. Enter OTP → Account created
+  6. Auto-login → Redirect to dashboard
+
+Applicant Login:
+  1. Navigate to /applicant/login
+  2. Enter passport ID
+  3. Request OTP → Sent to registered email
+  4. Enter OTP → JWT token received
+  5. Token stored in localStorage
+  6. Redirect to dashboard
+
+Protected Routes:
+  - Check localStorage for 'token'
+  - If no token → Redirect to login
+  - If token exists → Allow access
+  - Token sent in Authorization header
+
+Logout:
+  - Remove token from localStorage
+  - Redirect to landing page
+
+===========================================
+📊 STATE MANAGEMENT
+===========================================
+
+Local Storage:
+  - token: JWT authentication token
+  - user: User information (optional)
+
+Component State:
+  - useState for local state
+  - useEffect for side effects
+  - Custom hooks for complex logic
+
+Form State:
+  - useApplicationForm hook
+  - Manages multi-step form
+  - Handles validation
+  - Saves drafts
+
+===========================================
+🔌 API INTEGRATION
+===========================================
+
+API Client: src/services/api.js
+Base URL: http://localhost:5000
+Headers: Authorization: Bearer <token>
+
+Request Interceptor:
+  - Adds JWT token to all requests
+  - Sets Content-Type
+
+Response Interceptor:
+  - Handles 401 (redirect to login)
+  - Handles errors globally
+  - Returns response data
+
+===========================================
+🎯 ROUTING STRUCTURE
+===========================================
+
+Public Routes:
+  - / (Landing)
+  - /applicant/login
+  - /applicant/register
+  - /embassy/login
+  - /admin/login
+
+Protected Routes (Applicant):
+  - /dashboard
+  - /apply-new-visa
+  - /complete-application
+  - /track-status
+  - /payment
+  - /print-application
+  - /reupload-document
+
+Protected Routes (Embassy):
+  - /embassy/dashboard
+  - /embassy/application/:id
+
+Protected Routes (Admin):
+  - /admin/dashboard
+  - /admin/applications
+  - /admin/embassies
+
+===========================================
+📱 RESPONSIVE DESIGN
+===========================================
+
+Breakpoints:
+  - Mobile: < 768px
+  - Tablet: 768px - 1024px
+  - Desktop: > 1024px
+
+Features:
+  - Mobile-first approach
+  - Flexible grid system
+  - Responsive navigation
+  - Touch-friendly buttons
+  - Optimized forms
+
+===========================================
+🚀 RUNNING THE FRONTEND
+===========================================
+
+Install Dependencies:
+  npm install
+
+Configure Environment:
+  cp .env.example .env
+  # Edit .env if needed
+
+Start Development Server:
+  npm start
+  # Opens http://localhost:3000
+
+Build for Production:
+  npm run build
+  # Creates /build directory
+
+===========================================
+🧪 TESTING PAGES
+===========================================
+
+Landing Page:
+  http://localhost:3000/
+
+Applicant Flow:
+  http://localhost:3000/applicant/register
+  http://localhost:3000/applicant/login
+  http://localhost:3000/dashboard
+
+Embassy Flow:
+  http://localhost:3000/embassy/login
+  http://localhost:3000/embassy/dashboard
+
+Admin Flow:
+  http://localhost:3000/admin/login
+  http://localhost:3000/admin/dashboard
+
+===========================================
+END OF FRONTEND FILES LIST
+===========================================

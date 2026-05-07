@@ -1,0 +1,492 @@
+===========================================
+EVIDMS BACKEND - COMPLETE FILE LIST
+===========================================
+
+📁 PROJECT STRUCTURE
+-------------------------------------------
+backend/
+├── config/
+│   └── env.js                          - Environment configuration loader
+├── controllers/
+│   ├── authController.js               - Authentication endpoints (send OTP, verify OTP)
+│   ├── applicationController.js        - Application CRUD operations
+│   ├── documentController.js           - Document upload/reupload handlers
+│   └── paymentController.js            - Payment order creation and verification
+├── middleware/
+│   ├── auth.js                         - JWT authentication & role-based access control
+│   └── upload.js                       - Multer file upload configuration
+├── models/
+│   ├── User.js                         - User model (wraps userSchema)
+│   ├── Application.js                  - Application model (wraps applicationSchema)
+│   └── Otp.js                          - OTP model (wraps otpSchema)
+├── routes/
+│   ├── authRoutes.js                   - /api/auth routes
+│   ├── applicationRoutes.js            - /api/applications routes
+│   ├── documentRoutes.js               - /api/documents routes
+│   └── paymentRoutes.js                - /api/payments routes
+├── schemas/
+│   ├── userSchema.js                   - Mongoose schema for users (APPLICANT/OFFICER/ADMIN)
+│   ├── applicationSchema.js            - Mongoose schema for visa applications
+│   └── otpSchema.js                    - Mongoose schema for OTP records
+├── services/
+│   └── authService.js                  - Business logic for OTP generation & verification
+├── utils/
+│   ├── generateOtp.js                  - Generate 6-digit OTP
+│   ├── generateId.js                   - Generate application ID (APP + 6 chars)
+│   └── sendEmail.js                    - Send email via Brevo/Sendinblue API
+├── uploads/                            - File storage directory (created automatically)
+├── .env                                - Environment variables (NOT in git)
+├── .env.example                        - Environment template
+├── .gitignore                          - Git ignore rules
+├── package.json                        - Dependencies and scripts
+├── seed.js                             - Database seeder (creates default admin)
+└── server.js                           - Express server entry point
+
+===========================================
+📄 FILE DETAILS
+===========================================
+
+-------------------------------------------
+1. server.js
+-------------------------------------------
+Purpose: Main Express server entry point
+Features:
+  - CORS configuration
+  - JSON body parser (5MB limit)
+  - Static file serving (/uploads)
+  - Route mounting
+  - Error handling middleware
+  - MongoDB connection
+  - Server startup
+
+Routes Mounted:
+  - /api/auth → authRoutes
+  - /api/applications → applicationRoutes
+  - /api/documents → documentRoutes
+  - /api/payments → paymentRoutes
+  - /health → Health check endpoint
+  - /uploads → Static file serving
+
+-------------------------------------------
+2. config/env.js
+-------------------------------------------
+Purpose: Centralized configuration management
+Exports:
+  - port: Server port (default: 5000)
+  - nodeEnv: Environment (development/production)
+  - mongoUri: MongoDB connection string
+  - jwt.secret: JWT signing secret
+  - jwt.expiresIn: JWT expiration time
+  - email.brevoApiKey: Brevo API key
+  - email.from: Sender email address
+  - email.fromName: Sender name
+  - clientOrigin: Frontend URL for CORS
+
+-------------------------------------------
+3. seed.js
+-------------------------------------------
+Purpose: Database seeding script
+Creates:
+  - Default admin user (username: admin, password: changeme1)
+Run with: npm run seed
+
+-------------------------------------------
+4. package.json
+-------------------------------------------
+Dependencies:
+  - cors: ^2.8.5
+  - dotenv: ^16.4.5
+  - express: ^4.19.2
+  - jsonwebtoken: ^9.0.2
+  - mongoose: ^8.5.1
+  - multer: ^1.4.5-lts.1
+  - sib-api-v3-sdk: ^8.5.0
+
+DevDependencies:
+  - nodemon: ^3.1.4
+
+Scripts:
+  - start: node server.js
+  - dev: nodemon server.js
+  - seed: node seed.js
+
+-------------------------------------------
+5. models/User.js
+-------------------------------------------
+Purpose: User model wrapper
+Exports: Mongoose model for User collection
+Uses: userSchema from schemas/userSchema.js
+
+-------------------------------------------
+6. models/Application.js
+-------------------------------------------
+Purpose: Application model wrapper
+Exports: Mongoose model for Application collection
+Uses: applicationSchema from schemas/applicationSchema.js
+
+-------------------------------------------
+7. models/Otp.js
+-------------------------------------------
+Purpose: OTP model wrapper
+Exports: Mongoose model for Otp collection
+Uses: otpSchema from schemas/otpSchema.js
+
+-------------------------------------------
+8. schemas/userSchema.js
+-------------------------------------------
+Purpose: User document structure
+Fields:
+  - role: APPLICANT | OFFICER | ADMIN
+  - email: String (required for APPLICANT, unique)
+  - mobileNumber: String (10 digits, for APPLICANT)
+  - passportId: String (unique, for APPLICANT)
+  - embassyId: String (for OFFICER)
+  - username: String (unique, for ADMIN)
+  - password: String (min 8 chars, for OFFICER/ADMIN)
+  - timestamps: createdAt, updatedAt
+
+-------------------------------------------
+9. schemas/applicationSchema.js
+-------------------------------------------
+Purpose: Visa application document structure
+Fields:
+  - applicationId: String (unique, indexed)
+  - userId: ObjectId (ref: User, indexed)
+  - status: DRAFT | SUBMITTED | PENDING | APPROVED | REJECTED
+  - visaType: Tourist | Business | Student | Transit | Work
+  - destinationCountry: String
+  - personalDetails: Object (name, gender, DOB, etc.)
+  - passportDetails: Object (type, number, issue/expiry dates)
+  - addressDetails: Object (present & permanent addresses)
+  - contactDetails: Object (email, mobile numbers)
+  - documents: Array of {name, fileUrl, mimeType, uploadedAt}
+  - statusHistory: Array of {status, at, by, remarks}
+  - payment: Object {orderId, paymentId, amount, status, paidAt}
+  - submittedAt: Date
+  - timestamps: createdAt, updatedAt
+
+-------------------------------------------
+10. schemas/otpSchema.js
+-------------------------------------------
+Purpose: OTP record structure
+Fields:
+  - passportId: String (indexed)
+  - email: String
+  - mobileNumber: String
+  - otp: String (6 digits)
+  - purpose: login | register
+  - expiresAt: Date
+  - isVerified: Boolean
+  - timestamps: createdAt, updatedAt
+
+-------------------------------------------
+11. controllers/authController.js
+-------------------------------------------
+Purpose: Authentication request handlers
+Endpoints:
+  - sendOtp: POST /api/auth/send-otp
+    Body: {passportId, email, mobileNumber, purpose}
+    Response: {success, message}
+  
+  - verifyOtp: POST /api/auth/verify-otp
+    Body: {passportId, otp, purpose}
+    Response: {success, message, token?, user?}
+
+-------------------------------------------
+12. controllers/applicationController.js
+-------------------------------------------
+Purpose: Application management handlers
+Endpoints:
+  - createApplication: POST /api/applications
+    Creates new DRAFT application
+  
+  - listMyApplications: GET /api/applications/user
+    Lists all user's applications
+  
+  - getApplication: GET /api/applications/:id
+    Gets specific application
+  
+  - getStatus: GET /api/applications/status/:id
+    Gets application status & history
+  
+  - saveDraft: PUT /api/applications/draft/:id
+    Saves draft application
+  
+  - submitApplication: PUT /api/applications/submit/:id
+    Submits application (DRAFT → SUBMITTED)
+  
+  - printApplication: GET /api/applications/:id/print
+    Returns print URL for application
+
+-------------------------------------------
+13. controllers/documentController.js
+-------------------------------------------
+Purpose: Document upload handlers
+Endpoints:
+  - uploadDocument: POST /api/documents/upload
+    Multipart: file, applicationId
+    Appends document to application
+  
+  - reuploadDocument: PUT /api/documents/reupload/:id
+    Multipart: file
+    Replaces most recent document
+
+-------------------------------------------
+14. controllers/paymentController.js
+-------------------------------------------
+Purpose: Payment processing handlers
+Endpoints:
+  - createOrder: POST /api/payments/create-order
+    Body: {applicationId, amount}
+    Creates payment order
+  
+  - verifyPayment: POST /api/payments/verify
+    Body: {orderId, paymentId, applicationId}
+    Verifies payment and updates status
+
+-------------------------------------------
+15. middleware/auth.js
+-------------------------------------------
+Purpose: Authentication & authorization middleware
+Functions:
+  - requireAuth: Verifies JWT token from Authorization header
+    Sets req.user = {id, role}
+  
+  - requireRole(...roles): Restricts access to specific roles
+    Usage: requireRole('applicant', 'admin')
+
+-------------------------------------------
+16. middleware/upload.js
+-------------------------------------------
+Purpose: File upload configuration
+Features:
+  - Multer disk storage
+  - Unique filename generation
+  - File type filtering (JPG, PNG, PDF only)
+  - File size limit (5MB)
+  - Auto-creates uploads/ directory
+
+Exports:
+  - upload: Multer instance
+  - UPLOAD_DIR: Upload directory path
+
+-------------------------------------------
+17. routes/authRoutes.js
+-------------------------------------------
+Purpose: Authentication route definitions
+Routes:
+  - POST /api/auth/send-otp → sendOtp
+  - POST /api/auth/verify-otp → verifyOtp
+
+-------------------------------------------
+18. routes/applicationRoutes.js
+-------------------------------------------
+Purpose: Application route definitions
+Middleware: requireAuth, requireRole('applicant')
+Routes:
+  - POST   / → createApplication
+  - GET    /user → listMyApplications
+  - GET    /status/:id → getStatus
+  - GET    /:id → getApplication
+  - GET    /:id/print → printApplication
+  - PUT    /draft/:id → saveDraft
+  - PUT    /submit/:id → submitApplication
+
+-------------------------------------------
+19. routes/documentRoutes.js
+-------------------------------------------
+Purpose: Document route definitions
+Middleware: requireAuth, requireRole('applicant')
+Routes:
+  - POST /upload → uploadDocument (with multer)
+  - PUT  /reupload/:id → reuploadDocument (with multer)
+
+-------------------------------------------
+20. routes/paymentRoutes.js
+-------------------------------------------
+Purpose: Payment route definitions
+Middleware: requireAuth, requireRole('applicant')
+Routes:
+  - POST /create-order → createOrder
+  - POST /verify → verifyPayment
+
+-------------------------------------------
+21. services/authService.js
+-------------------------------------------
+Purpose: Authentication business logic
+Functions:
+  - sendOtpService: Generates and sends OTP
+    For login: Checks user exists
+    For register: Checks user doesn't exist
+    Creates OTP record, sends email
+  
+  - verifyOtpService: Verifies OTP and processes
+    For register: Creates new user
+    For login: Issues JWT token
+    Deletes OTP record after verification
+
+OTP TTL: 5 minutes (300,000 ms)
+
+-------------------------------------------
+22. utils/generateOtp.js
+-------------------------------------------
+Purpose: OTP generation utility
+Function: generateOtp()
+Returns: 6-digit numeric string (100000-999999)
+
+-------------------------------------------
+23. utils/generateId.js
+-------------------------------------------
+Purpose: Application ID generation
+Function: generateApplicationId()
+Returns: String like "APPX4Y2K9" (APP + 6 random chars)
+Characters: A-Z, 2-9 (excludes I, O, 0, 1 for clarity)
+
+-------------------------------------------
+24. utils/sendEmail.js
+-------------------------------------------
+Purpose: Email sending via Brevo API
+Function: sendEmailOtp(email, otp)
+Features:
+  - Uses Brevo (Sendinblue) API
+  - Sends transactional email
+  - Configurable sender identity
+  - Error handling and logging
+
+-------------------------------------------
+25. .env.example
+-------------------------------------------
+Purpose: Environment variables template
+Variables:
+  PORT=5000
+  NODE_ENV=development
+  MONGODB_URI=mongodb://127.0.0.1:27017/evidms
+  JWT_SECRET=replace-with-a-long-random-string
+  JWT_EXPIRES_IN=1d
+  BREVO_API_KEY=xkeysib-xxx...
+  EMAIL_FROM=no-reply@example.com
+  EMAIL_FROM_NAME=E-Visa App
+  CLIENT_ORIGIN=http://localhost:3000
+
+-------------------------------------------
+26. .gitignore
+-------------------------------------------
+Purpose: Git ignore rules
+Ignores:
+  - node_modules/
+  - .env
+  - uploads/
+  - *.log
+
+===========================================
+🔌 API ENDPOINTS SUMMARY
+===========================================
+
+Authentication (Public):
+  POST   /api/auth/send-otp
+  POST   /api/auth/verify-otp
+
+Applications (Protected - Applicant):
+  POST   /api/applications
+  GET    /api/applications/user
+  GET    /api/applications/:id
+  GET    /api/applications/status/:id
+  GET    /api/applications/:id/print
+  PUT    /api/applications/draft/:id
+  PUT    /api/applications/submit/:id
+
+Documents (Protected - Applicant):
+  POST   /api/documents/upload
+  PUT    /api/documents/reupload/:id
+
+Payments (Protected - Applicant):
+  POST   /api/payments/create-order
+  POST   /api/payments/verify
+
+Utility:
+  GET    /health
+  GET    /uploads/:filename
+
+===========================================
+🔐 AUTHENTICATION FLOW
+===========================================
+
+Registration:
+  1. POST /api/auth/send-otp {passportId, email, mobileNumber, purpose: "register"}
+  2. OTP sent to email
+  3. POST /api/auth/verify-otp {passportId, otp, purpose: "register"}
+  4. User created, returns user object
+
+Login:
+  1. POST /api/auth/send-otp {passportId, purpose: "login"}
+  2. OTP sent to registered email
+  3. POST /api/auth/verify-otp {passportId, otp, purpose: "login"}
+  4. Returns JWT token
+
+Protected Requests:
+  - Include header: Authorization: Bearer <jwt_token>
+  - Token decoded to get user ID and role
+  - Role checked against route requirements
+
+===========================================
+📊 DATABASE COLLECTIONS
+===========================================
+
+users:
+  - Stores all user accounts (applicants, officers, admins)
+  - Indexed: email, passportId, username
+
+applications:
+  - Stores visa applications
+  - Indexed: applicationId, userId, status
+
+otps:
+  - Stores OTP records
+  - Indexed: passportId
+  - Auto-expires after 5 minutes
+
+===========================================
+📁 FILE STORAGE
+===========================================
+
+Location: backend/uploads/
+Format: {timestamp}-{random}.{ext}
+Allowed: JPG, PNG, PDF
+Max Size: 5MB
+Access: http://localhost:5000/uploads/{filename}
+
+===========================================
+🔧 CONFIGURATION
+===========================================
+
+Environment: .env file
+Database: MongoDB (local or Atlas)
+Email: Brevo/Sendinblue API
+Authentication: JWT (7 days expiry)
+File Upload: Multer (disk storage)
+CORS: Configured for frontend origin
+
+===========================================
+🚀 RUNNING THE BACKEND
+===========================================
+
+Install Dependencies:
+  cd backend
+  npm install
+
+Configure Environment:
+  cp .env.example .env
+  # Edit .env with your values
+
+Seed Database:
+  npm run seed
+
+Start Development Server:
+  npm run dev
+
+Start Production Server:
+  npm start
+
+===========================================
+END OF BACKEND FILES LIST
+===========================================

@@ -1,0 +1,1178 @@
+﻿===========================================
+EVIDMS BACKEND - COMPLETE SOURCE CODE
+===========================================
+Generated: 2026-05-06 09:00:46
+
+This file contains the complete source code of all backend files.
+
+===========================================
+
+===========================================
+FILE: backend/package.json
+===========================================
+{
+  "name": "evidms-backend",
+  "version": "1.0.0",
+  "description": "E-Visa & Immigration Document Management System - Backend",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.1",
+    "multer": "^1.4.5-lts.1",
+    "sib-api-v3-sdk": "^8.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
+
+
+
+===========================================
+FILE: backend/.env.example
+===========================================
+# --- Server ---
+PORT=5000
+NODE_ENV=development
+
+# --- Database ---
+MONGODB_URI=mongodb://127.0.0.1:27017/evidms
+
+# --- JWT ---
+JWT_SECRET=replace-with-a-long-random-string
+JWT_EXPIRES_IN=1d
+
+# --- Brevo / Sendinblue (Transactional Email) ---
+BREVO_API_KEY=xkeysib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMAIL_FROM=no-reply@example.com
+EMAIL_FROM_NAME=E-Visa App
+
+# --- CORS ---
+CLIENT_ORIGIN=http://localhost:3000
+
+
+
+===========================================
+FILE: backend/server.js
+===========================================
+const path = require("path");
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+
+const config = require("./config/env");
+
+const authRoutes = require("./routes/authRoutes");
+const applicationRoutes = require("./routes/applicationRoutes");
+const documentRoutes = require("./routes/documentRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+
+const app = express();
+
+app.use(cors({ origin: config.clientOrigin, credentials: true }));
+app.use(express.json({ limit: "5mb" }));
+
+// Serve uploaded files (kept simple â€” replace with S3/GCS in production).
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+app.get("/health", (_req, res) => res.json({ ok: true }));
+
+app.use("/api/auth", authRoutes);
+app.use("/api/applications", applicationRoutes);
+app.use("/api/documents", documentRoutes);
+app.use("/api/payments", paymentRoutes);
+
+app.use((_req, res) => res.status(404).json({ success: false, message: "Not Found" }));
+
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  const status = err.status || 500;
+  res.status(status).json({ success: false, message: err.message || "Server Error" });
+});
+
+async function start() {
+  try {
+    await mongoose.connect(config.mongoUri);
+    console.log("MongoDB connected");
+    app.listen(config.port, () => {
+      console.log(`API listening on http://localhost:${config.port}`);
+    });
+  } catch (err) {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  }
+}
+
+start();
+
+
+
+===========================================
+FILE: backend/seed.js
+===========================================
+/**
+ * Database seeder.
+ * Run with `npm run seed` from the backend folder.
+ */
+const mongoose = require("mongoose");
+const config = require("./config/env");
+const User = require("./models/User");
+
+async function seed() {
+  await mongoose.connect(config.mongoUri);
+  console.log("Connected for seeding");
+
+  // Example: ensure a default admin exists.
+  const existing = await User.findOne({ username: "admin" });
+  if (!existing) {
+    await User.create({
+      role: "ADMIN",
+      username: "admin",
+      password: "changeme1",
+    });
+    console.log("Seeded default admin (username=admin, password=changeme1)");
+  } else {
+    console.log("Admin already exists, skipping");
+  }
+
+  await mongoose.disconnect();
+  process.exit(0);
+}
+
+seed().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+
+
+
+===========================================
+FILE: backend/config/env.js
+===========================================
+/**
+ * Single source of truth for backend configuration.
+ *
+ * All other modules MUST read secrets/config from this file (not from
+ * `process.env` directly), so that changing a value in `.env` propagates
+ * everywhere without hunting through the codebase.
+ */
+require("dotenv").config();
+
+function required(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const config = {
+  port: parseInt(process.env.PORT, 10) || 5000,
+  nodeEnv: process.env.NODE_ENV || "development",
+
+  mongoUri: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/evidms",
+
+  jwt: {
+    secret: process.env.JWT_SECRET || "dev-only-change-me",
+    expiresIn: process.env.JWT_EXPIRES_IN || "1d",
+  },
+
+  email: {
+    brevoApiKey: process.env.BREVO_API_KEY || "",
+    from: process.env.EMAIL_FROM || "no-reply@example.com",
+    fromName: process.env.EMAIL_FROM_NAME || "E-Visa App",
+  },
+
+  clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+
+  required,
+};
+
+module.exports = config;
+
+
+
+===========================================
+FILE: backend/models/User.js
+===========================================
+const mongoose = require("mongoose");
+const userSchema = require("../schemas/userSchema");
+
+/**
+ * User Model â€” created from userSchema.
+ */
+const User = mongoose.model("User", userSchema);
+
+module.exports = User;
+
+
+
+===========================================
+FILE: backend/models/Application.js
+===========================================
+const mongoose = require("mongoose");
+const applicationSchema = require("../schemas/applicationSchema");
+
+const Application = mongoose.model("Application", applicationSchema);
+
+module.exports = Application;
+
+
+
+===========================================
+FILE: backend/models/Otp.js
+===========================================
+const mongoose = require("mongoose");
+const otpSchema = require("../schemas/otpSchema");
+
+const Otp = mongoose.model("Otp", otpSchema);
+
+module.exports = Otp;
+
+
+
+===========================================
+FILE: backend/schemas/userSchema.js
+===========================================
+const mongoose = require("mongoose");
+
+/**
+ * User Schema
+ * Defines the structure and validations for User documents.
+ */
+const userSchema = new mongoose.Schema(
+  {
+    role: {
+      type: String,
+      enum: ["APPLICANT", "OFFICER", "ADMIN"],
+      required: true,
+      default: "APPLICANT",
+    },
+
+    email: {
+      type: String,
+      required: function () {
+        return this.role === "APPLICANT";
+      },
+      unique: true,
+      sparse: true,
+      match: [
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        "Please use a valid email",
+      ],
+    },
+
+    mobileNumber: {
+      type: String,
+      required: function () {
+        return this.role === "APPLICANT";
+      },
+      match: [/^[0-9]{10}$/, "Enter valid 10-digit mobile number"],
+    },
+
+    passportId: {
+      type: String,
+      required: function () {
+        return this.role === "APPLICANT";
+      },
+      unique: true,
+      sparse: true,
+    },
+
+    embassyId: {
+      type: String,
+      required: function () {
+        return this.role === "OFFICER";
+      },
+    },
+
+    username: {
+      type: String,
+      sparse: true,
+      unique: true,
+      required: function () {
+        return this.role === "ADMIN";
+      },
+    },
+
+    password: {
+      type: String,
+      required: function () {
+        return this.role === "OFFICER" || this.role === "ADMIN";
+      },
+      minlength: 8,
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = userSchema;
+
+
+
+===========================================
+FILE: backend/schemas/applicationSchema.js
+===========================================
+const mongoose = require("mongoose");
+
+const documentSubSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    fileUrl: { type: String, required: true },
+    mimeType: { type: String },
+    uploadedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const statusHistorySubSchema = new mongoose.Schema(
+  {
+    status: { type: String, required: true },
+    at: { type: Date, default: Date.now },
+    by: { type: String },
+    remarks: { type: String },
+  },
+  { _id: false }
+);
+
+const paymentSubSchema = new mongoose.Schema(
+  {
+    orderId: { type: String },
+    paymentId: { type: String },
+    amount: { type: Number },
+    status: {
+      type: String,
+      enum: ["PENDING", "SUCCESS", "FAILED"],
+      default: "PENDING",
+    },
+    paidAt: { type: Date },
+  },
+  { _id: false }
+);
+
+const applicationSchema = new mongoose.Schema(
+  {
+    /* Identity */
+    applicationId: { type: String, unique: true, index: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+
+    status: {
+      type: String,
+      enum: ["DRAFT", "SUBMITTED", "PENDING", "APPROVED", "REJECTED"],
+      default: "DRAFT",
+      index: true,
+    },
+
+    visaType: {
+      type: String,
+      enum: ["Tourist", "Business", "Student", "Transit", "Work"],
+    },
+    destinationCountry: { type: String },
+
+    /* Sections (mirror frontend applicationFormSchema.js) */
+    personalDetails: {
+      fullName: { type: String },
+      gender: { type: String, enum: ["Male", "Female", "Other"] },
+      dateOfBirth: { type: Date },
+      countryOfBirth: { type: String },
+      nationalIdNo: { type: String },
+      citizenship: { type: String },
+      educationQualification: {
+        type: String,
+        enum: ["Below Matric", "Graduate", "Post Graduate", "Professional", "Other"],
+      },
+    },
+
+    passportDetails: {
+      passportType: { type: String, enum: ["Ordinary", "Diplomatic", "Official", "Service"] },
+      passportNumber: { type: String },
+      placeOfIssue: { type: String },
+      dateOfIssue: { type: String },
+      dateOfExpiry: { type: String },
+    },
+
+    addressDetails: {
+      presentAddress: {
+        addressLine: { type: String },
+        district: { type: String },
+        state: { type: String },
+        country: { type: String },
+        postalCode: { type: String },
+      },
+      permanentAddress: {
+        sameAsPresent: { type: Boolean, default: false },
+        addressLine: { type: String },
+        district: { type: String },
+        state: { type: String },
+        country: { type: String },
+        postalCode: { type: String },
+      },
+    },
+
+    contactDetails: {
+      email: {
+        type: String,
+        match: [
+          /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+          "Please use a valid email",
+        ],
+      },
+      mobileNumber: {
+        type: String,
+        match: [/^[0-9]{10}$/, "Enter valid 10-digit mobile number"],
+      },
+      alternateMobileNumber: {
+        type: String,
+        match: [/^[0-9]{10}$/, "Enter valid 10-digit mobile number"],
+      },
+    },
+
+    /* Operational */
+    documents: { type: [documentSubSchema], default: [] },
+    statusHistory: { type: [statusHistorySubSchema], default: [] },
+    payment: { type: paymentSubSchema, default: () => ({}) },
+    submittedAt: { type: Date },
+  },
+  { timestamps: true }
+);
+
+module.exports = applicationSchema;
+
+
+
+===========================================
+FILE: backend/schemas/otpSchema.js
+===========================================
+const mongoose = require("mongoose");
+
+const otpSchema = new mongoose.Schema(
+  {
+    passportId: {
+      type: String,
+      required: true,
+      index: true,
+    },
+
+    email: {
+      type: String,
+      required: true,
+    },
+
+    mobileNumber: {
+      type: String,
+    },
+
+    otp: {
+      type: String,
+      required: true,
+      match: [/^[0-9]{6}$/, "OTP must be 6 digits"],
+    },
+
+    purpose: {
+      type: String,
+      enum: ["login", "register"],
+      required: true,
+    },
+
+    expiresAt: {
+      type: Date,
+      required: true,
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = otpSchema;
+
+
+
+===========================================
+FILE: backend/controllers/authController.js
+===========================================
+const {
+  sendOtpService,
+  verifyOtpService,
+} = require("../services/authService");
+
+exports.sendOtp = async (req, res) => {
+  try {
+    const { passportId, email, mobileNumber, purpose } = req.body;
+    if (!passportId || !purpose) {
+      return res.status(400).json({
+        success: false,
+        message: "passportId and purpose are required",
+      });
+    }
+
+    const result = await sendOtpService({ passportId, email, mobileNumber, purpose });
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { passportId, otp, purpose } = req.body;
+    if (!passportId || !otp || !purpose) {
+      return res.status(400).json({
+        success: false,
+        message: "passportId, otp and purpose are required",
+      });
+    }
+
+    const result = await verifyOtpService({ passportId, otp, purpose });
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+
+
+===========================================
+FILE: backend/controllers/applicationController.js
+===========================================
+const Application = require("../models/Application");
+const { generateApplicationId } = require("../utils/generateId");
+
+/**
+ * POST /api/applications
+ * Create a new DRAFT application owned by the authenticated user.
+ */
+exports.createApplication = async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const applicationId = generateApplicationId();
+
+    const application = await Application.create({
+      ...payload,
+      applicationId,
+      userId: req.user.id,
+      status: "DRAFT",
+      statusHistory: [{ status: "DRAFT", by: req.user.id }],
+    });
+
+    return res.status(201).json({
+      success: true,
+      applicationId: application.applicationId,
+      application,
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/applications/user
+ * List all applications owned by the authenticated user.
+ */
+exports.listMyApplications = async (req, res) => {
+  try {
+    const apps = await Application.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    return res.status(200).json(apps);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/applications/:id
+ * Fetch one application (must belong to the caller).
+ */
+exports.getApplication = async (req, res) => {
+  try {
+    const app = await Application.findOne({
+      applicationId: req.params.id,
+      userId: req.user.id,
+    });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    return res.status(200).json(app);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/applications/status/:id
+ * Lightweight status + history view.
+ */
+exports.getStatus = async (req, res) => {
+  try {
+    const app = await Application.findOne({
+      applicationId: req.params.id,
+      userId: req.user.id,
+    }).select("applicationId status statusHistory");
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    return res.status(200).json({
+      applicationId: app.applicationId,
+      status: app.status,
+      history: app.statusHistory,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * PUT /api/applications/draft/:id
+ * Save a DRAFT â€” accepts a partial payload and merges into the document.
+ */
+exports.saveDraft = async (req, res) => {
+  try {
+    const app = await Application.findOne({
+      applicationId: req.params.id,
+      userId: req.user.id,
+    });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    if (app.status !== "DRAFT") {
+      return res.status(400).json({ success: false, message: "Only DRAFT applications can be edited" });
+    }
+
+    Object.assign(app, req.body || {});
+    app.status = "DRAFT";
+    await app.save();
+
+    return res.status(200).json({ success: true, application: app });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * PUT /api/applications/submit/:id
+ * Move a DRAFT to SUBMITTED.
+ */
+exports.submitApplication = async (req, res) => {
+  try {
+    const app = await Application.findOne({
+      applicationId: req.params.id,
+      userId: req.user.id,
+    });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    Object.assign(app, req.body || {});
+    app.status = "SUBMITTED";
+    app.submittedAt = new Date();
+    app.statusHistory.push({ status: "SUBMITTED", by: req.user.id });
+
+    await app.save();
+    return res.status(200).json({ success: true, application: app });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * GET /api/applications/:id/print
+ * Stub: returns a URL the frontend can link to. In production this would
+ * generate a PDF (pdfkit / puppeteer) and stream / upload it.
+ */
+exports.printApplication = async (req, res) => {
+  try {
+    const app = await Application.findOne({
+      applicationId: req.params.id,
+      userId: req.user.id,
+    });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+    if (app.status === "DRAFT") {
+      return res.status(400).json({ success: false, message: "Only submitted applications can be printed" });
+    }
+    return res.status(200).json({
+      success: true,
+      fileUrl: `/api/applications/${app.applicationId}/print.pdf`,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+===========================================
+FILE: backend/controllers/documentController.js
+===========================================
+const path = require("path");
+const fs = require("fs");
+const Application = require("../models/Application");
+
+/**
+ * POST /api/documents/upload   (multipart: file, applicationId)
+ * Append an uploaded file to the application's documents array.
+ */
+exports.uploadDocument = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
+
+    const { applicationId } = req.body || {};
+    if (!applicationId) return res.status(400).json({ success: false, message: "applicationId is required" });
+
+    const app = await Application.findOne({ applicationId, userId: req.user.id });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+    app.documents.push({
+      name: req.file.originalname,
+      fileUrl,
+      mimeType: req.file.mimetype,
+    });
+    await app.save();
+
+    return res.status(200).json({
+      success: true,
+      fileUrl,
+      document: app.documents[app.documents.length - 1],
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * PUT /api/documents/reupload/:id    (multipart: file)
+ * Replace the most recent document on the application. Old file is deleted.
+ */
+exports.reuploadDocument = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
+
+    const app = await Application.findOne({
+      applicationId: req.params.id,
+      userId: req.user.id,
+    });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    const previous = app.documents.pop();
+    if (previous) {
+      const oldPath = path.join(__dirname, "..", previous.fileUrl);
+      fs.promises.unlink(oldPath).catch(() => {});
+    }
+
+    const fileUrl = `/uploads/${req.file.filename}`;
+    app.documents.push({
+      name: req.file.originalname,
+      fileUrl,
+      mimeType: req.file.mimetype,
+    });
+    await app.save();
+
+    return res.status(200).json({ success: true, fileUrl });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+
+
+===========================================
+FILE: backend/controllers/paymentController.js
+===========================================
+const Application = require("../models/Application");
+
+/**
+ * POST /api/payments/create-order
+ * Stub a Razorpay-like order. In production this would call the gateway.
+ */
+exports.createOrder = async (req, res) => {
+  try {
+    const { applicationId, amount } = req.body || {};
+    if (!applicationId || !amount) {
+      return res.status(400).json({ success: false, message: "applicationId and amount are required" });
+    }
+
+    const app = await Application.findOne({ applicationId, userId: req.user.id });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    const orderId = `ORD_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+    app.payment = { orderId, amount, status: "PENDING" };
+    await app.save();
+
+    return res.status(200).json({ success: true, orderId, amount });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * POST /api/payments/verify
+ * Stub verification. Marks payment SUCCESS and pushes a status entry.
+ */
+exports.verifyPayment = async (req, res) => {
+  try {
+    const { orderId, paymentId, applicationId } = req.body || {};
+    if (!orderId || !paymentId) {
+      return res.status(400).json({ success: false, message: "orderId and paymentId are required" });
+    }
+
+    const app = await Application.findOne({
+      $or: [
+        { applicationId, userId: req.user.id },
+        { "payment.orderId": orderId, userId: req.user.id },
+      ],
+    });
+    if (!app) return res.status(404).json({ success: false, message: "Application not found" });
+
+    app.payment = {
+      ...(app.payment?.toObject?.() || app.payment || {}),
+      orderId,
+      paymentId,
+      status: "SUCCESS",
+      paidAt: new Date(),
+    };
+    if (app.status === "SUBMITTED") {
+      app.status = "PENDING";
+      app.statusHistory.push({ status: "PENDING", by: req.user.id, remarks: "Payment received" });
+    }
+    await app.save();
+
+    return res.status(200).json({ success: true, status: "Success", payment: app.payment });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+
+
+===========================================
+FILE: backend/middleware/auth.js
+===========================================
+const jwt = require("jsonwebtoken");
+const config = require("../config/env");
+
+/**
+ * Verify the `Authorization: Bearer <jwt>` header and attach req.user.
+ */
+function requireAuth(req, res, next) {
+  const header = req.header("Authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: "Authentication required" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, config.jwt.secret);
+    req.user = { id: decoded.id, role: decoded.role };
+    return next();
+  } catch (err) {
+    return res.status(401).json({ success: false, message: "Invalid or expired token" });
+  }
+}
+
+/**
+ * Restrict to one or more roles. Use after requireAuth.
+ *   router.get('/x', requireAuth, requireRole('applicant'), handler)
+ */
+function requireRole(...roles) {
+  const allowed = roles.map((r) => r.toLowerCase());
+  return (req, res, next) => {
+    if (!req.user || !allowed.includes(String(req.user.role).toLowerCase())) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    next();
+  };
+}
+
+module.exports = { requireAuth, requireRole };
+
+
+
+===========================================
+FILE: backend/middleware/upload.js
+===========================================
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
+
+const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `${unique}${ext}`);
+  },
+});
+
+const ALLOWED = new Set(["image/jpeg", "image/png", "application/pdf"]);
+
+function fileFilter(_req, file, cb) {
+  if (!ALLOWED.has(file.mimetype)) {
+    return cb(new Error("Only JPG, PNG, or PDF files are accepted"));
+  }
+  cb(null, true);
+}
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+});
+
+module.exports = { upload, UPLOAD_DIR };
+
+
+
+===========================================
+FILE: backend/routes/authRoutes.js
+===========================================
+const express = require("express");
+const { sendOtp, verifyOtp } = require("../controllers/authController");
+
+const router = express.Router();
+
+router.post("/send-otp", sendOtp);
+router.post("/verify-otp", verifyOtp);
+
+module.exports = router;
+
+
+
+===========================================
+FILE: backend/routes/applicationRoutes.js
+===========================================
+const express = require("express");
+const { requireAuth, requireRole } = require("../middleware/auth");
+const ctrl = require("../controllers/applicationController");
+
+const router = express.Router();
+
+router.use(requireAuth, requireRole("applicant"));
+
+router.post("/", ctrl.createApplication);
+router.get("/user", ctrl.listMyApplications);
+router.get("/status/:id", ctrl.getStatus);
+router.get("/:id", ctrl.getApplication);
+router.get("/:id/print", ctrl.printApplication);
+router.put("/draft/:id", ctrl.saveDraft);
+router.put("/submit/:id", ctrl.submitApplication);
+
+module.exports = router;
+
+
+
+===========================================
+FILE: backend/routes/documentRoutes.js
+===========================================
+const express = require("express");
+const { requireAuth, requireRole } = require("../middleware/auth");
+const { upload } = require("../middleware/upload");
+const ctrl = require("../controllers/documentController");
+
+const router = express.Router();
+
+router.use(requireAuth, requireRole("applicant"));
+
+router.post("/upload", upload.single("file"), ctrl.uploadDocument);
+router.put("/reupload/:id", upload.single("file"), ctrl.reuploadDocument);
+
+module.exports = router;
+
+
+
+===========================================
+FILE: backend/routes/paymentRoutes.js
+===========================================
+const express = require("express");
+const { requireAuth, requireRole } = require("../middleware/auth");
+const ctrl = require("../controllers/paymentController");
+
+const router = express.Router();
+
+router.use(requireAuth, requireRole("applicant"));
+
+router.post("/create-order", ctrl.createOrder);
+router.post("/verify", ctrl.verifyPayment);
+
+module.exports = router;
+
+
+
+===========================================
+FILE: backend/services/authService.js
+===========================================
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const Otp = require("../models/Otp");
+const { generateOtp } = require("../utils/generateOtp");
+const { sendEmailOtp } = require("../utils/sendEmail");
+const config = require("../config/env");
+
+const OTP_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Issue an OTP for either login or registration.
+ */
+exports.sendOtpService = async ({ passportId, email, mobileNumber, purpose }) => {
+  const user = await User.findOne({ passportId });
+  const otp = generateOtp();
+
+  if (purpose === "login") {
+    if (!user) throw new Error("User does not exist");
+
+    await Otp.create({
+      passportId,
+      email: user.email,
+      otp,
+      purpose: "login",
+      expiresAt: Date.now() + OTP_TTL_MS,
+    });
+    await sendEmailOtp(user.email, otp);
+    return { message: "OTP sent for login" };
+  }
+
+  if (purpose === "register") {
+    if (user) throw new Error("User already exists");
+    if (!email) throw new Error("Email is required for registration");
+
+    await Otp.create({
+      passportId,
+      email,
+      mobileNumber,
+      otp,
+      purpose: "register",
+      expiresAt: Date.now() + OTP_TTL_MS,
+    });
+    await sendEmailOtp(email, otp);
+    return { message: "OTP sent for registration" };
+  }
+
+  throw new Error("Invalid purpose");
+};
+
+/**
+ * Verify an OTP and (for register) create the user / (for login) issue a JWT.
+ */
+exports.verifyOtpService = async ({ passportId, otp, purpose }) => {
+  const otpRecord = await Otp.findOne({ passportId, purpose }).sort({ createdAt: -1 });
+  if (!otpRecord) throw new Error("OTP not found. Please request again.");
+
+  if (otpRecord.expiresAt < Date.now()) {
+    await Otp.deleteOne({ _id: otpRecord._id });
+    throw new Error("OTP expired");
+  }
+  if (otpRecord.otp !== otp) {
+    throw new Error("Invalid OTP");
+  }
+
+  if (purpose === "register") {
+    const existing = await User.findOne({ passportId });
+    if (existing) throw new Error("User already exists");
+
+    const user = await User.create({
+      role: "APPLICANT",
+      passportId,
+      email: otpRecord.email,
+      mobileNumber: otpRecord.mobileNumber,
+    });
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    return { message: "Registration successful", user };
+  }
+
+  if (purpose === "login") {
+    const user = await User.findOne({ passportId });
+    if (!user) throw new Error("User not found");
+
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role.toLowerCase() },
+      config.jwt.secret,
+      { expiresIn: config.jwt.expiresIn }
+    );
+
+    return { message: "Login successful", token, user };
+  }
+
+  throw new Error("Invalid purpose");
+};
+
+
+
+===========================================
+FILE: backend/utils/generateOtp.js
+===========================================
+/**
+ * Generate a 6-digit numeric OTP as a string.
+ */
+exports.generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+
+
+===========================================
+FILE: backend/utils/generateId.js
+===========================================
+/**
+ * Generate a short, human-friendly application id like `APP9X4Y2K`.
+ */
+exports.generateApplicationId = () => {
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no I/O/0/1 to avoid confusion
+  let suffix = "";
+  for (let i = 0; i < 6; i++) {
+    suffix += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `APP${suffix}`;
+};
+
+
+
+===========================================
+FILE: backend/utils/sendEmail.js
+===========================================
+const SibApiV3Sdk = require("sib-api-v3-sdk");
+const config = require("../config/env");
+
+/**
+ * Send an OTP email via Brevo (Sendinblue).
+ *
+ * The API key and sender identity are pulled from `config/env.js`, which in
+ * turn reads from `.env`. Update the values in `.env` to change them across
+ * the entire backend.
+ */
+exports.sendEmailOtp = async (email, otp) => {
+  try {
+    const client = SibApiV3Sdk.ApiClient.instance;
+    const apiKey = client.authentications["api-key"];
+    apiKey.apiKey = config.email.brevoApiKey;
+
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+    await apiInstance.sendTransacEmail({
+      sender: {
+        email: config.email.from,
+        name: config.email.fromName,
+      },
+      to: [{ email }],
+      subject: "OTP for E-Visa",
+      textContent: `Your OTP is: ${otp}`,
+    });
+
+    console.log(`OTP email sent to ${email}`);
+  } catch (err) {
+    console.error("sendEmailOtp error:", err.response?.body || err.message);
+    throw new Error("Failed to send OTP email");
+  }
+};
+
+
+
