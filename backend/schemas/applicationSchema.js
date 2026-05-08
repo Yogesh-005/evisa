@@ -51,19 +51,19 @@ const applicationSchema = new mongoose.Schema(
     /* Sections — names mirror the frontend MainForm sections exactly */
     personalDetails: {
       fullName: { type: String },
-      gender: { type: String, enum: ["Male", "Female", "Other"] },
+      gender: { type: String, enum: ["Male", "Female", "Other", ""] },
       dateOfBirth: { type: String }, // stored as ISO string from <input type="date">
       placeOfBirth: { type: String },
       nationalIdNo: { type: String },
       nationality: { type: String },
       educationQualification: {
         type: String,
-        enum: ["Below Matric", "Graduate", "Post Graduate", "Professional", "Other"],
+        enum: ["Below Matric", "Graduate", "Post Graduate", "Professional", "Other", ""],
       },
     },
 
     passportDetails: {
-      passportType: { type: String, enum: ["Normal", "Diplomatic", "Official"] },
+      passportType: { type: String, enum: ["Normal", "Diplomatic", "Official", ""] },
       passportNumber: { type: String },
       placeOfIssue: { type: String },
       dateOfIssue: { type: String },

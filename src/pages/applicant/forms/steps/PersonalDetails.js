@@ -57,6 +57,13 @@ function PersonalDetails({ nextStep, handleChange, data: initialData = {} }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Keep the parent's formData in sync on every change so "Save Draft"
+  // always sees the latest values without waiting for Next.
+  useEffect(() => {
+    handleChange("personalDetails", data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
   const errorMessages = {
     fullName_required_err: "Name is Required",
     fullName_regex_err: "Name should only contain alphabets",

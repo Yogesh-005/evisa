@@ -79,6 +79,10 @@ function DraftEditor({ draft, onBack, navigate }) {
     visaDetails: draft.visaDetails || {},
   };
 
+  async function handleSaveDraft(formData) {
+    await api.put(`/api/applications/draft/${draftId}`, formData);
+  }
+
   async function handleSubmit({ formData, documents }) {
     // Save accumulated edits, then submit. Documents are optional here —
     // a draft can already have docs attached from the original session.
@@ -113,7 +117,11 @@ function DraftEditor({ draft, onBack, navigate }) {
           </button>
         </div>
 
-        <MainForm initialData={initialData} onSubmit={handleSubmit} />
+        <MainForm
+          initialData={initialData}
+          onSubmit={handleSubmit}
+          onSaveDraft={handleSaveDraft}
+        />
       </div>
     </div>
   );

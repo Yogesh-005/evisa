@@ -57,6 +57,12 @@ function FamilyDetails({ prevStep, nextStep, handleChange, data: initialData = {
     }
   }, [data]);
 
+  // Keep parent formData in sync on every change so Save Draft sees latest.
+  useEffect(() => {
+    handleChange("familyDetails", data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
   function handleInput(e) {
     const { name, value } = e.target;
     const [section, field] = name.split(".");

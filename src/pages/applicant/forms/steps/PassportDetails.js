@@ -46,6 +46,12 @@ function PassportDetails({ nextStep, prevStep, handleChange, data: initialData =
     }
   }, [data]);
 
+  // Keep parent formData in sync on every change so Save Draft sees latest.
+  useEffect(() => {
+    handleChange("passportDetails", data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
   function handleInput(e) {
     const { name, value } = e.target;
     setData({ ...data, [name]: value });

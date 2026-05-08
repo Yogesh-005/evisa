@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import api from "../../services/api";
@@ -6,19 +6,42 @@ import MainForm from "./forms/steps/MainForm";
 
 /**
  * Hosts the eight-step application form. The MainForm owns the per-step
- * state; this page wires the final submit to the API:
- *   1. POST /api/applications      → create DRAFT, get applicationId
- *   2. POST /api/documents/upload  → for each selected file
- *   3. PUT  /api/applications/submit/:id → DRAFT → SUBMITTED
- *   4. navigate to /payment
+ * state; this page wires:
+ *   - Save Draft: POST /api/applications on first call (creates DRAFT
+ *                 and remembers applicationId), PUT /api/applications/draft/:id
+ *                 on subsequent calls.
+ *   - Submit:     reuses the saved draft if one exists (so we don't
+ *                 create a duplicate), then uploads documents and
+ *                 PUT /api/applications/submit/:id, then routes to /payment.
  */
 function ApplyNewVisa() {
   const navigate = useNavigate();
+  // Store across renders without forcing re-renders (state would also
+  // work; ref keeps the JSX simpler since nothing depends on the value).
+  const draftIdRef = useRef(null);
+
+  async function handleSaveDraft(formData) {
+    if (!draftIdRef.current) {
+      const res = await api.post("/api/applications", formData);
+      draftIdRef.current =
+        res.data.applicationId || res.data?.application?.applicationId;
+      return;
+    }
+    await api.put(`/api/applications/draft/${draftIdRef.current}`, formData);
+  }
 
   async function handleSubmit({ formData, documents }) {
-    const createRes = await api.post("/api/applications", formData);
-    const applicationId =
-      createRes.data.applicationId || createRes.data?.application?.applicationId;
+    let applicationId = draftIdRef.current;
+
+    if (!applicationId) {
+      const createRes = await api.post("/api/applications", formData);
+      applicationId =
+        createRes.data.applicationId || createRes.data?.application?.applicationId;
+      draftIdRef.current = applicationId;
+    } else {
+      // Make sure the draft has the latest values before submitting.
+      await api.put(`/api/applications/draft/${applicationId}`, formData);
+    }
 
     for (const file of documents) {
       const fd = new FormData();
@@ -39,10 +62,11 @@ function ApplyNewVisa() {
       <div className="page-content" style={{ maxWidth: 720 }}>
         <h1 className="section-title">Apply for New Visa</h1>
         <p className="section-sub">
-          Complete each step. Your input is validated as you go.
+          Complete each step. You can Save Draft any time and resume later from
+          the dashboard.
         </p>
 
-        <MainForm onSubmit={handleSubmit} />
+        <MainForm onSubmit={handleSubmit} onSaveDraft={handleSaveDraft} />
       </div>
     </div>
   );

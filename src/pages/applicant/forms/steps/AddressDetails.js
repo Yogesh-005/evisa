@@ -52,6 +52,12 @@ function AddressDetails({ nextStep, prevStep, handleChange, data: initialData = 
     }
   }, [data]);
 
+  // Keep parent formData in sync on every change so Save Draft sees latest.
+  useEffect(() => {
+    handleChange("addressDetails", data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
   function handleInput(e) {
     const { name, value, type, checked } = e.target;
     const [section, field] = name.split(".");
