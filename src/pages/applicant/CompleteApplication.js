@@ -2,12 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
 import api from "../../services/api";
-import useApplicationForm from "./forms/useApplicationForm";
-import FormSection from "./forms/FormSection";
+import MainForm from "./forms/steps/MainForm";
 
 /**
  * Lists the user's DRAFT applications and lets them resume editing /
- * submit using the same schema-driven form as ApplyNewVisa.
+ * submit using the same MainForm component as ApplyNewVisa.
  */
 function CompleteApplication() {
   const navigate = useNavigate();
@@ -35,7 +34,7 @@ function CompleteApplication() {
   return (
     <div className="page-wrapper">
       <Navbar role="applicant" backPath="/dashboard" />
-      <div className="page-content" style={{ maxWidth: 700 }}>
+      <div className="page-content" style={{ maxWidth: 720 }}>
         <h1 className="section-title">Complete Application</h1>
         <p className="section-sub">Resume and submit your partially filled applications.</p>
 
@@ -55,7 +54,7 @@ function CompleteApplication() {
               <div>
                 <p style={{ fontWeight: 600 }}>{app.applicationId || app._id}</p>
                 <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                  {app.destinationCountry || "—"} — {app.visaType || "—"}
+                  {app.visaDetails?.countryToVisit || "—"} — {app.visaDetails?.visaType || "—"}
                 </p>
               </div>
               <button className="btn btn-outline" onClick={() => setSelected(app)}>Resume →</button>
@@ -68,39 +67,34 @@ function CompleteApplication() {
 }
 
 function DraftEditor({ draft, onBack, navigate }) {
-  const { sectionsView, value, validate } = useApplicationForm(draft);
-  const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(false);
-
   const draftId = draft.applicationId || draft._id;
 
-  async function handleSaveDraft() {
-    setError("");
-    setSaved(false);
-    try {
-      await api.put(`/api/applications/draft/${draftId}`, value);
-      setSaved(true);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to save draft.");
-    }
-  }
+  // Strip Mongoose metadata; pass only the form sections to MainForm.
+  const initialData = {
+    personalDetails: draft.personalDetails || {},
+    passportDetails: draft.passportDetails || {},
+    addressDetails: draft.addressDetails || {},
+    familyDetails: draft.familyDetails || {},
+    contactDetails: draft.contactDetails || {},
+    visaDetails: draft.visaDetails || {},
+  };
 
-  async function handleSubmit() {
-    setError("");
-    if (!validate()) {
-      setError("Please fix the highlighted fields before submitting.");
-      return;
+  async function handleSubmit({ formData, documents }) {
+    // Save accumulated edits, then submit. Documents are optional here —
+    // a draft can already have docs attached from the original session.
+    await api.put(`/api/applications/draft/${draftId}`, formData);
+
+    for (const file of documents) {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("applicationId", draftId);
+      await api.post("/api/documents/upload", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
     }
-    setLoading(true);
-    try {
-      await api.put(`/api/applications/submit/${draftId}`, value);
-      navigate("/payment", { state: { applicationId: draftId } });
-    } catch (err) {
-      setError(err.response?.data?.message || "Submission failed.");
-    } finally {
-      setLoading(false);
-    }
+
+    await api.put(`/api/applications/submit/${draftId}`, formData);
+    navigate("/payment", { state: { applicationId: draftId } });
   }
 
   return (
@@ -110,37 +104,16 @@ function DraftEditor({ draft, onBack, navigate }) {
         <h1 className="section-title">Complete Application</h1>
         <p className="section-sub">Editing draft {draftId}.</p>
 
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-            <p style={{ fontWeight: 600 }}>Editing: {draftId}</p>
-            <button
-              onClick={onBack}
-              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}
-            >
-              ← Back to list
-            </button>
-          </div>
-
-          {error && <div className="msg-error">{error}</div>}
-          {saved && <div className="msg-success">Draft saved successfully.</div>}
-
-          {sectionsView.map(({ section, values, errors, onChange }) => (
-            <FormSection
-              key={section.key}
-              section={section}
-              values={values}
-              errors={errors}
-              onChange={onChange}
-            />
-          ))}
-
-          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-            <button className="btn btn-outline" onClick={handleSaveDraft} style={{ flex: 1 }}>Save Draft</button>
-            <button className="btn btn-primary" onClick={handleSubmit} disabled={loading} style={{ flex: 1 }}>
-              {loading ? "Submitting…" : "Submit Application"}
-            </button>
-          </div>
+        <div style={{ marginBottom: 16 }}>
+          <button
+            onClick={onBack}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--text-muted)" }}
+          >
+            ← Back to drafts list
+          </button>
         </div>
+
+        <MainForm initialData={initialData} onSubmit={handleSubmit} />
       </div>
     </div>
   );

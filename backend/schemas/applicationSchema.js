@@ -48,20 +48,14 @@ const applicationSchema = new mongoose.Schema(
       index: true,
     },
 
-    visaType: {
-      type: String,
-      enum: ["Tourist", "Business", "Student", "Transit", "Work"],
-    },
-    destinationCountry: { type: String },
-
-    /* Sections (mirror frontend applicationFormSchema.js) */
+    /* Sections — names mirror the frontend MainForm sections exactly */
     personalDetails: {
       fullName: { type: String },
       gender: { type: String, enum: ["Male", "Female", "Other"] },
-      dateOfBirth: { type: Date },
-      countryOfBirth: { type: String },
+      dateOfBirth: { type: String }, // stored as ISO string from <input type="date">
+      placeOfBirth: { type: String },
       nationalIdNo: { type: String },
-      citizenship: { type: String },
+      nationality: { type: String },
       educationQualification: {
         type: String,
         enum: ["Below Matric", "Graduate", "Post Graduate", "Professional", "Other"],
@@ -69,7 +63,7 @@ const applicationSchema = new mongoose.Schema(
     },
 
     passportDetails: {
-      passportType: { type: String, enum: ["Ordinary", "Diplomatic", "Official", "Service"] },
+      passportType: { type: String, enum: ["Normal", "Diplomatic", "Official"] },
       passportNumber: { type: String },
       placeOfIssue: { type: String },
       dateOfIssue: { type: String },
@@ -94,6 +88,25 @@ const applicationSchema = new mongoose.Schema(
       },
     },
 
+    familyDetails: {
+      fatherDetails: {
+        fullName: { type: String },
+        nationality: { type: String },
+      },
+      motherDetails: {
+        fullName: { type: String },
+        nationality: { type: String },
+      },
+      maritalStatus: {
+        type: String,
+        enum: ["Single", "Married", "Divorced", "Widowed", ""],
+      },
+      spouseDetails: {
+        fullName: { type: String },
+        nationality: { type: String },
+      },
+    },
+
     contactDetails: {
       email: {
         type: String,
@@ -110,6 +123,22 @@ const applicationSchema = new mongoose.Schema(
         type: String,
         match: [/^[0-9]{10}$/, "Enter valid 10-digit mobile number"],
       },
+    },
+
+    visaDetails: {
+      countryToVisit: { type: String },
+      visaType: {
+        type: String,
+        enum: ["Tourist", "Business", "Student", "Transit", "Work", ""],
+      },
+      purposeOfVisit: { type: String },
+      durationOfStay: { type: Number },
+      numberOfEntries: {
+        type: String,
+        enum: ["Single", "Double", "Multiple", ""],
+      },
+      intendedDateOfArrival: { type: String },
+      intendedDateOfDeparture: { type: String },
     },
 
     /* Operational */
