@@ -1,5 +1,6 @@
 const Application = require("../models/Application");
 const { generateApplicationId } = require("../utils/generateId");
+const { buildApplicationPdf } = require("../utils/buildApplicationPdf");
 
 /**
  * POST /api/applications
@@ -130,8 +131,9 @@ exports.submitApplication = async (req, res) => {
 
 /**
  * GET /api/applications/:id/print
- * Stub: returns a URL the frontend can link to. In production this would
- * generate a PDF (pdfkit / puppeteer) and stream / upload it.
+ * Streams a generated PDF of the application. The frontend fetches this
+ * with axios (responseType: "blob"), wraps it in an object URL, and
+ * either downloads it or opens it in a new tab.
  */
 exports.printApplication = async (req, res) => {
   try {
@@ -143,10 +145,14 @@ exports.printApplication = async (req, res) => {
     if (app.status === "DRAFT") {
       return res.status(400).json({ success: false, message: "Only submitted applications can be printed" });
     }
-    return res.status(200).json({
-      success: true,
-      fileUrl: `/api/applications/${app.applicationId}/print.pdf`,
-    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${app.applicationId}.pdf"`
+    );
+
+    buildApplicationPdf(app).pipe(res);
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

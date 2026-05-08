@@ -35,12 +35,17 @@ evisa/
 │       │   ├── ReuploadDocument.js
 │       │   ├── PrintApplication.js
 │       │   └── forms/
-│       │       ├── applicationFormSchema.js   # ⭐ single source of truth for fields
-│       │       ├── FieldRenderer.js
-│       │       ├── FormSection.js
-│       │       ├── ReviewSummary.js
-│       │       ├── useApplicationForm.js
-│       │       └── formUtils.js
+│       │       └── steps/                     # 8-step apply-new-visa wizard
+│       │           ├── MainForm.js
+│       │           ├── Buttons.js
+│       │           ├── PersonalDetails.js
+│       │           ├── PassportDetails.js
+│       │           ├── AddressDetails.js
+│       │           ├── FamilyDetails.js
+│       │           ├── ContactDetails.js
+│       │           ├── VisaDetails.js
+│       │           ├── DocumentUpload.js
+│       │           └── ReviewSubmit.js
 │       ├── embassy/
 │       │   ├── EmbassyLogin.js
 │       │   ├── EmbassyDashboard.js
@@ -82,6 +87,7 @@ evisa/
 │   ├── utils/
 │   │   ├── generateOtp.js
 │   │   ├── generateId.js
+│   │   ├── buildApplicationPdf.js  # pdfkit-based print PDF
 │   │   └── sendEmail.js
 │   ├── uploads/                  # multer storage (gitignored)
 │   ├── .env.example
@@ -180,12 +186,17 @@ All `/api/applications`, `/api/documents`, and `/api/payments` routes require
 
 ---
 
-## Adding fields to the applicant detail form
+## Editing the applicant detail form
 
-Edit **only** `src/pages/applicant/forms/applicationFormSchema.js`. Append a
-field to the relevant section (or add a whole new section) and the input,
-validation message, and review summary all update — no other file changes
-needed on the frontend.
+The "Apply New Visa" page is an 8-step wizard composed of one component
+per step under `src/pages/applicant/forms/steps/`. To change a field:
 
-If the new field needs to persist, add the corresponding path to
-`backend/schemas/applicationSchema.js` so Mongoose stores it.
+1. Edit the corresponding step file (e.g. `PersonalDetails.js`) — update
+   the `data` shape, validation, and JSX.
+2. Mirror the change in `ReviewSubmit.js` so the new value appears on the
+   final review screen.
+3. Mirror the path in `backend/schemas/applicationSchema.js` so Mongoose
+   persists it.
+
+`MainForm.js` accepts an `initialData` prop, so `CompleteApplication.js`
+can reuse the same wizard to resume drafts.
